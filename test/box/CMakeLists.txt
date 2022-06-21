@@ -18,3 +18,17 @@ build_module(cfunc3 cfunc3.c)
 target_link_libraries(cfunc3 msgpuck)
 build_module(cfunc4 cfunc4.c)
 target_link_libraries(cfunc4 msgpuck)
+
+add_custom_target(box-test-lib
+                  DEPENDS function1
+                          reload1
+                          reload2
+                          func_restore1
+                          func_restore2
+                          func_restore3
+                          func_restore4
+                          tuple_bench
+                          cfunc1
+                          cfunc2
+                          cfunc3
+                          cfunc4)

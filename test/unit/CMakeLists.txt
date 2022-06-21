@@ -19,6 +19,94 @@ include_directories(${EXTRA_CORE_INCLUDE_DIRS})
 
 add_library(unit STATIC unit.c)
 
+set(UNIT_TEST_BINARIES
+    ${UNIT_TEST_BINARIES} heap.test
+                          heap_iterator.test
+                          stailq.test
+                          uri_parser.test
+                          uri.test
+                          queue.test
+                          mhash.test
+                          mhash_bytemap.test
+                          rope_basic.test
+                          gh-5788-rope-insert-oom.test
+                          rope_avl.test
+                          rope_stress.test
+                          rope.test
+                          int96.test
+                          bit.test
+                          bitset_basic.test
+                          bitset_iterator.test
+                          bitset_index.test
+                          base64.test
+                          uuid.test
+                          random.test
+                          xmalloc.test
+                          datetime.test
+                          error.test
+                          interval.test
+                          bps_tree.test
+                          bps_tree_iterator.test
+                          rtree.test
+                          rtree_iterator.test
+                          rtree_multidim.test
+                          light.test
+                          bloom.test
+                          vclock.test
+                          xrow.test
+                          decimal.test
+                          mp_error.test
+                          fiber.test
+                          fiber_stack.test
+                          func_cache.test
+                          prbuf.test
+                          clock_lowres.test
+                          fiber_stress.test
+                          fiber_cond.test
+                          fiber_channel.test
+                          fiber_channel_stress.test
+                          cbus_stress.test
+                          cbus.test
+                          cbus_call.test
+                          coio.test
+                          mp_print_unknown_ext.test
+                          scramble.test
+                          guava.test
+                          crc32.test
+                          find_path.test
+                          reflection_c.test
+                          reflection_cxx.test
+                          csv.test
+                          json.test
+                          rmean.test
+                          histogram.test
+                          ratelimit.test
+                          luaT_tuple_new.test
+                          luaL_iterator.test
+                          say.test
+                          vy_mem.test
+                          vy_point_lookup.test
+                          column_mask.test
+                          vy_write_iterator.test
+                          vy_cache.test
+                          coll.test
+                          tuple_bigref.test
+                          tuple_uint32_overflow.test
+                          checkpoint_schedule.test
+                          sio.test
+                          crypto.test
+                          swim.test
+                          swim_proto.test
+                          swim_errinj.test
+                          merger.test
+                          snap_quorum_delay.test
+                          raft.test
+                          popen-child
+                          popen.test
+                          serializer.test
+                          watcher.test
+                          grp_alloc.test)
+
 add_executable(heap.test heap.c)
 target_link_libraries(heap.test unit)
 add_executable(heap_iterator.test heap_iterator.c)
@@ -103,6 +191,7 @@ target_link_libraries(clock_lowres.test unit core)
 
 if (NOT ENABLE_GCOV)
     # This test is known to be broken with GCOV
+    set(UNIT_TEST_BINARIES ${UNIT_TEST_BINARIES} guard.test)
     add_executable(guard.test guard.cc core_test_utils.c)
     target_link_libraries(guard.test core unit)
 endif ()
@@ -131,6 +220,7 @@ target_link_libraries(cbus_call.test core unit stat)
 include(CheckSymbolExists)
 check_symbol_exists(__GLIBC__ features.h GLIBC_USED)
 if (GLIBC_USED)
+    set(UNIT_TEST_BINARIES ${UNIT_TEST_BINARIES} cbus_hang.test)
     add_executable(cbus_hang.test cbus_hang.c core_test_utils.c)
     target_link_libraries(cbus_hang.test core unit stat)
 endif ()
@@ -140,6 +230,7 @@ target_link_libraries(coio.test core eio bit uri unit)
 
 if (ENABLE_BUNDLED_MSGPUCK)
     set(MSGPUCK_DIR ${PROJECT_SOURCE_DIR}/src/lib/msgpuck/)
+    set(UNIT_TEST_BINARIES ${UNIT_TEST_BINARIES} msgpack.test)
     add_executable(msgpack.test
         ${MSGPUCK_DIR}/test/msgpuck.c
         ${MSGPUCK_DIR}/test/test.c)
@@ -307,3 +398,6 @@ target_link_libraries(watcher.test unit box)
 
 add_executable(grp_alloc.test grp_alloc.c box_test_utils.c)
 target_link_libraries(grp_alloc.test unit)
+
+add_custom_target(unit-test-bin
+                  DEPENDS ${UNIT_TEST_BINARIES})

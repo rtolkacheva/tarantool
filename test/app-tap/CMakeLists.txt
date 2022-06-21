@@ -7,3 +7,7 @@ build_module(libyield libyield.c)
 set(CMAKE_C_FLAGS "-Wall -Wextra -std=c99")
 set(CMAKE_C_FLAGS_DEBUG "-g -O0 -Werror")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2")
+
+add_custom_target(app-tap-test-lib
+                  DEPENDS module_api
+                          libyield)

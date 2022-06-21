@@ -9,3 +9,10 @@ build_module(sql_uuid sql_uuid.c)
 target_link_libraries(sql_uuid msgpuck core)
 build_module(decimal decimal.c)
 target_link_libraries(decimal msgpuck)
+
+add_custom_target(sql-tap-test-lib
+                  DEPENDS gh-5938-wrong-string-length
+                          gh-6024-funcs-return-bin
+                          gh-2579-custom-aggregate
+                          sql_uuid
+                          decimal)

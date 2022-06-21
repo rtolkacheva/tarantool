@@ -40,18 +40,57 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/small
         ${PROJECT_SOURCE_DIR}/src/lib/small/test/
         ${CMAKE_CURRENT_BINARY_DIR}/small
         COMMENT Create a symlink for libsmall to fix out-of-source tests)
-add_custom_target(symlink_small_tests ALL
-   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/small)
+
+add_custom_target(unit-test
+    DEPENDS unit-test-bin
+    COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
+        --builddir=${PROJECT_BINARY_DIR}
+        unit)
+
+add_custom_target(unit-test-force
+    DEPENDS unit-test-bin
+    COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
+        --builddir=${PROJECT_BINARY_DIR}
+        --force
+        unit)
+
+add_custom_target(func-test-lib
+    DEPENDS app-test-lib
+            app-tap-test-lib
+            box-test-lib
+            box-tap-test-lib
+            box-luatest-test-lib
+            sql-luatest-test-lib
+            sql-tap-test-lib)
+
+add_custom_target(func-test
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/small
+            func-test-lib
+    COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
+        --builddir=${PROJECT_BINARY_DIR}
+        --exclude unit/)
+
+add_custom_target(func-test-force
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/small
+            func-test-lib
+    COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
+        --builddir=${PROJECT_BINARY_DIR}
+        --exclude unit/
+        --force)
 
 add_custom_target(test
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/small
             LuaJIT-test
+            unit-test-bin
+            func-test-lib
     COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
         --builddir=${PROJECT_BINARY_DIR})
 
 add_custom_target(test-force
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/small
             LuaJIT-test
+            unit-test-bin
+            func-test-lib
     COMMAND ${PROJECT_SOURCE_DIR}/test/test-run.py
         --builddir=${PROJECT_BINARY_DIR}
         --force)
