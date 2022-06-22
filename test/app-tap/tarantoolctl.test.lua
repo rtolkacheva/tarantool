@@ -10,9 +10,8 @@ local fiber    = require('fiber')
 local ok, test_run = pcall(require, 'test_run')
 test_run = ok and test_run.new() or nil
 
-local BUILDDIR = os.getenv('BUILDDIR') or '.'
 local SOURCEDIR = os.getenv("SOURCEDIR") or '.'
-local TARANTOOLCTL_PATH = ('%s/extra/dist/tarantoolctl'):format(BUILDDIR)
+local TARANTOOLCTL_PATH = os.getenv('TARANTOOLCTL') or '.'
 
 local function recursive_rmdir(path)
     path = fio.abspath(path)
