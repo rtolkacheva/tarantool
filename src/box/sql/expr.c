@@ -3548,7 +3548,6 @@ sqlExprCacheRemove(Parse * pParse, int iReg, int nReg)
 void
 sqlExprCachePush(Parse * pParse)
 {
-	struct session MAYBE_UNUSED *user_session;
 	pParse->iCacheLevel++;
 }
 
@@ -3561,8 +3560,6 @@ void
 sqlExprCachePop(Parse * pParse)
 {
 	int i = 0;
-	struct session *user_session MAYBE_UNUSED;
-	user_session = current_session();
 	assert(pParse->iCacheLevel >= 1);
 	pParse->iCacheLevel--;
 	while (i < pParse->nColCache) {
@@ -3633,9 +3630,6 @@ void
 sqlExprCacheClear(Parse * pParse)
 {
 	int i;
-	struct session MAYBE_UNUSED *user_session;
-	user_session = current_session();
-
 	for (i = 0; i < pParse->nColCache; i++) {
 		if (pParse->aColCache[i].tempReg
 		    && pParse->nTempReg < ArraySize(pParse->aTempReg)
