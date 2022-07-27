@@ -11,6 +11,10 @@ target_compile_options(
     INTERFACE
         $<$<NOT:$<BOOL:${OSS_FUZZ}>>:
         -fsanitize=fuzzer
+        -fsanitize-coverage=trace-cmp
+        -fprofile-instr-generate
+        -fcoverage-mapping
+        -g
         >
         $<$<BOOL:${OSS_FUZZ}>:
         ${CXX}
@@ -22,6 +26,10 @@ target_link_libraries(
     INTERFACE
         $<$<NOT:$<BOOL:${OSS_FUZZ}>>:
         -fsanitize=fuzzer
+        -fsanitize-coverage=trace-cmp
+        -fprofile-instr-generate
+        -fcoverage-mapping
+        -g
         >
         $<$<BOOL:${OSS_FUZZ}>:
         $ENV{LIB_FUZZING_ENGINE}
@@ -49,6 +57,8 @@ target_link_libraries(datetime_parse_full_fuzzer PUBLIC core fuzzer_config)
 
 add_executable(datetime_strptime_fuzzer datetime_strptime_fuzzer.c)
 target_link_libraries(datetime_strptime_fuzzer PUBLIC core fuzzer_config)
+
+add_subdirectory(sql_fuzzer)
 
 add_executable(mp_datetime_fuzzer mp_datetime_fuzzer.c)
 target_link_libraries(mp_datetime_fuzzer PUBLIC core fuzzer_config)

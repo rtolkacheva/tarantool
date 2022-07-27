@@ -1,0 +1,173 @@
+syntax = "proto2";
+
+package sql_query;
+
+message SQLQuery {
+    oneof query_oneof {
+        // Select select = 1;
+        CreateTable create_table = 2;
+        // Insert insert = 3;
+        // Delete delete = 4;
+    }
+}
+
+// ~~~~SELECT~~~~
+
+message Select {
+    required bool distinct = 1;
+    required bool all = 2;
+    required Column column = 3;
+    repeated Column extra_columns = 4;
+    optional JoinSource join_source = 5;
+    optional Expression where_expr = 6;
+    optional Expression group_by_exr = 7;
+    optional Expression having_expr = 8;
+    optional OrderBY order_by = 9;
+    optional Limit limit = 10;
+}
+
+message Column {
+    // didn't understand expressions yet
+}
+
+message JoinSource {
+
+}
+
+message OrderBY {
+
+}
+
+
+// ~~~~CREATE_TABLE~~~~
+message CreateTable {
+    required bool if_not_exists = 1;
+    required TableName table_name = 2;
+    repeated CreateTableOption options = 3;
+    optional Engine engine = 4;
+}
+
+message TableName {
+    required uint32 code = 1;
+}
+
+message CreateTableOption {
+    oneof option_oneof {
+        ColumnDefinition column_definition = 1;
+        TableConstraint table_constraint = 2;
+    }
+    required ColumnDefinition column_definition_fallback = 3;
+}
+
+message ColumnDefinition {
+    required ColumnName column_name = 1;
+    required DataType type = 2;
+    repeated ColumnConstraint constraints = 3;
+}
+
+message ColumnName {
+    required uint32 code = 1;
+}
+
+message DataType {
+    enum DataTypeEnum {
+        ANY = 0;
+        ARRAY = 1;
+        BOOLEAN = 2; // same as BOOL
+        DECIMAL = 3;
+        DOUBLE = 4;
+        INTEGER = 5; // same as INT
+        MAP = 6;
+        NUMBER = 7;
+        UNSIGNED = 8;
+        UUID = 9;
+        VARBINARY = 10;
+    }
+    oneof data_type_oneof {
+        DataTypeEnum type_enum = 1;
+        CollatableDataType collatable_type = 2;
+    }
+    required DataTypeEnum type_enum_fallback = 3;
+}
+
+message CollatableDataType {
+    enum CollatableDataTypeEnum {
+        SCALAR = 0;
+        STRING = 1;
+        TEXT = 2;
+    }
+    oneof collatable_data_type_oneof {
+        CollatableDataTypeEnum type_enum = 1;
+        VarChar varchar = 2;
+    }
+    required CollatableDataTypeEnum type_enum_fallback = 3;
+    optional CollationClause collation_clause = 4;
+}
+
+message VarChar {
+    required int32 integer = 1;
+}
+
+message CollationClause {
+    enum CollationClauseEnum {
+        UNICODE = 0;
+        UNICODE_SV_S1 = 1;
+        BINARY = 2;
+        // TODO ?
+    }
+    required CollationClauseEnum collation_clause_enum = 1;
+}
+
+message ColumnConstraint {
+    oneof column_constraint_oneof {
+        ColumnConstraintNullable nullable = 1;
+        NamedColumnConstraint named_constraint = 2;
+    }
+    required DefaultExpression default_expression = 3;
+}
+
+message ColumnConstraintName {
+    required uint32 code = 1;
+}
+
+message ColumnConstraintNullable {
+    enum ColumnConstraintNullableEnum {
+        NOT_NULL = 0;
+        NULL = 1;
+    }
+    required ColumnConstraintNullableEnum nullable_enum = 1;
+}
+
+message NamedColumnConstraint {
+    optional ColumnConstraintName constraint_name = 1;
+    oneof constraint_oneof {
+        bool unique = 2;
+        Expression check_expression = 3;
+        ColumnDefinitionForeignKeyClause foreign_key_clause = 4;
+    }
+    required bool primary_key = 5;
+}
+
+message Expression {
+    // TODO
+}
+
+message ColumnDefinitionForeignKeyClause {
+
+}
+
+message DefaultExpression {
+    // TODO
+}
+
+message TableConstraint {
+    // TODO
+}
+
+message Engine {
+    enum EngineEnum {
+        VINYL = 0;
+        MEMTX = 1;
+    }
+    required EngineEnum engine_enum = 1;
+}
