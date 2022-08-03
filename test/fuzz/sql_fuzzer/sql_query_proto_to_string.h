@@ -2,7 +2,7 @@
 #define INCLUDES_TARANTOOL_TEST_SQL_QUERY_PROTO_TO_STRING_H
 
 #include <string>
-#include "test/fuzz/sql_fuzzer/sql_query.pb.h"
+#include "sql_query.pb.h"
 
 namespace sql_fuzzer {
 

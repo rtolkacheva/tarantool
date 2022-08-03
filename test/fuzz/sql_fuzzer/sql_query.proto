@@ -13,30 +13,30 @@ message SQLQuery {
 
 // ~~~~SELECT~~~~
 
-message Select {
-    required bool distinct = 1;
-    required bool all = 2;
-    required Column column = 3;
-    repeated Column extra_columns = 4;
-    optional JoinSource join_source = 5;
-    optional Expression where_expr = 6;
-    optional Expression group_by_exr = 7;
-    optional Expression having_expr = 8;
-    optional OrderBY order_by = 9;
-    optional Limit limit = 10;
-}
+// message Select {
+//     required bool distinct = 1;
+//     required bool all = 2;
+//     required Column column = 3;
+//     repeated Column extra_columns = 4;
+//     optional JoinSource join_source = 5;
+//     optional Expression where_expr = 6;
+//     optional Expression group_by_exr = 7;
+//     optional Expression having_expr = 8;
+//     optional OrderBY order_by = 9;
+//     optional Limit limit = 10;
+// }
 
-message Column {
-    // didn't understand expressions yet
-}
+// message Column {
+//     // didn't understand expressions yet
+// }
 
-message JoinSource {
+// message JoinSource {
 
-}
+// }
 
-message OrderBY {
+// message OrderBY {
 
-}
+// }
 
 
 // ~~~~CREATE_TABLE~~~~
@@ -113,7 +113,7 @@ message CollationClause {
         UNICODE = 0;
         UNICODE_SV_S1 = 1;
         BINARY = 2;
-        // TODO ?
+        // TODO: ?
     }
     required CollationClauseEnum collation_clause_enum = 1;
 }
@@ -143,25 +143,27 @@ message NamedColumnConstraint {
     oneof constraint_oneof {
         bool unique = 2;
         Expression check_expression = 3;
-        ColumnDefinitionForeignKeyClause foreign_key_clause = 4;
+        ReferenceForeignKeyClause foreign_key_clause = 4;
     }
     required bool primary_key = 5;
 }
 
 message Expression {
-    // TODO
+    // TODO:
 }
 
-message ColumnDefinitionForeignKeyClause {
-
+message ReferenceForeignKeyClause {
+    required TableName table_name = 1;
+    repeated ColumnName column_names = 2;
+    required bool match_full = 3;
 }
 
 message DefaultExpression {
-    // TODO
+    // TODO:
 }
 
 message TableConstraint {
-    // TODO
+    // TODO:
 }
 
 message Engine {

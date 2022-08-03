@@ -4,10 +4,14 @@ include(protobuf) # FIXME double building protobuf
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(sql_fuzzer)
+add_executable(sql_fuzzer
+               sql_fuzzer.cc
+               sql_query_proto_to_string.cc
+               sql_query_proto_to_string.h)
 
 add_library(sql-query-proto)
 
+# ????
 foreach(lib ${LPM_LIBRARIES})
     find_library(${lib} REQUIRED_FILES)
 endforeach(lib)
@@ -19,7 +23,7 @@ target_link_libraries(sql-query-proto
                       ${PROTOBUF_LIBRARIES}
                       )
 
-target_link_libraries(sql_fuzzer PUBLIC sql-query-proto ${LPM_LIBRARIES} fuzzer_config)
+target_link_libraries(sql_fuzzer PUBLIC box sql-query-proto ${LPM_LIBRARIES} fuzzer_config)
 
 # set_property(TARGET sql_fuzzer
 #              PROPERTY COMPILE_FLAGS "-fsanitize=fuzzer-no-link,address -fsanitize-coverage=trace-cmp -fprofile-instr-generate -fcoverage-mapping -g")

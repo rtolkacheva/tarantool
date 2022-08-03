@@ -11,6 +11,7 @@ target_compile_options(
     INTERFACE
         $<$<NOT:$<BOOL:${OSS_FUZZ}>>:
         -fsanitize=fuzzer
+        -fsanitize=address
         -fsanitize-coverage=trace-cmp
         -fprofile-instr-generate
         -fcoverage-mapping
@@ -26,6 +27,7 @@ target_link_libraries(
     INTERFACE
         $<$<NOT:$<BOOL:${OSS_FUZZ}>>:
         -fsanitize=fuzzer
+        -fsanitize=address
         -fsanitize-coverage=trace-cmp
         -fprofile-instr-generate
         -fcoverage-mapping
