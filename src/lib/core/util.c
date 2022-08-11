@@ -211,9 +211,9 @@ abspath(const char *filename)
 	if (getcwd(abspath, PATH_MAX - strlen(filename) - 1) == NULL)
 		say_syserror("getcwd");
 	else {
-		strcat(abspath, "/");
+		strlcat(abspath, "/", PATH_MAX);
 	}
-	strcat(abspath, filename);
+	strlcat(abspath, filename, PATH_MAX);
 	return abspath;
 }
 
@@ -262,6 +262,25 @@ strlcpy(char *dst, const char *src, size_t size)
 		dst[len] = '\0';
 	}
 	return src_len;
+}
+#endif
+
+#ifndef HAVE_STRLCAT
+size_t
+strlcat(char *dst, const char *src, size_t size)
+{
+	size_t src1_len = strlen(dst);
+	size_t src2_len = strlen(src);
+
+	if (src1_len >= size)
+		return size + src2_len;
+
+	size_t len = src2_len < size - src1_len ?
+		     src2_len : size - src1_len - 1;
+
+	memcpy(dst + src1_len, src, len);
+	dst[src1_len + len] = '\0';
+	return src1_len + src2_len;
 }
 #endif
 

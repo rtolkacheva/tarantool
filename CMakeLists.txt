@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(tarantool C CXX)
+project(tarantool C CXX ASM)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_INCLUDE_PATH})
@@ -123,6 +123,7 @@ check_function_exists(clock_gettime HAVE_CLOCK_GETTIME_WITHOUT_RT)
 
 check_symbol_exists(__get_cpuid cpuid.h HAVE_CPUID)
 check_symbol_exists(strlcpy string.h HAVE_STRLCPY)
+check_symbol_exists(strlcat string.h HAVE_STRLCAT)
 
 # Checks for libev
 include(CheckStructHasMember)
@@ -735,9 +736,11 @@ set(options PACKAGE VERSION BUILD C_COMPILER CXX_COMPILER C_FLAGS CXX_FLAGS
     ENABLE_DOC
     ENABLE_DIST
     ENABLE_BUNDLED_LIBCURL
+    BUNDLED_LIBCURL_USE_ARES
     ENABLE_BUNDLED_LIBYAML
     ENABLE_BUNDLED_MSGPUCK
-    ENABLE_BUNDLED_LIBUNWIND)
+    ENABLE_BUNDLED_LIBUNWIND
+    ENABLE_FEEDBACK_DAEMON)
 foreach(option IN LISTS options)
     if (NOT DEFINED ${option})
         set(value "${TARANTOOL_${option}}")

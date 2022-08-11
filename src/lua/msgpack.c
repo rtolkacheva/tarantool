@@ -42,8 +42,8 @@
 #include <small/region.h>
 #include <small/ibuf.h>
 
-#include "decimal.h" /* decimal_unpack() */
-#include "lua/decimal.h" /* lua_pushdecimal() */
+#include "core/decimal.h" /* decimal_unpack() */
+#include "lua/decimal.h" /* luaT_newdecimal() */
 #include "mp_extension_types.h"
 #include "mp_uuid.h" /* mp_decode_uuid() */
 #include "mp_datetime.h"
@@ -388,7 +388,7 @@ luamp_decode(struct lua_State *L, struct luaL_serializer *cfg,
 		switch (ext_type) {
 		case MP_DECIMAL:
 		{
-			decimal_t *dec = lua_pushdecimal(L);
+			decimal_t *dec = luaT_newdecimal(L);
 			dec = decimal_unpack(data, len, dec);
 			if (dec == NULL)
 				goto ext_decode_err;
@@ -396,7 +396,7 @@ luamp_decode(struct lua_State *L, struct luaL_serializer *cfg,
 		}
 		case MP_UUID:
 		{
-			struct tt_uuid *uuid = luaL_pushuuid(L);
+			struct tt_uuid *uuid = luaT_newuuid(L);
 			*data = svp;
 			uuid = mp_decode_uuid(data, uuid);
 			if (uuid == NULL)
@@ -405,7 +405,7 @@ luamp_decode(struct lua_State *L, struct luaL_serializer *cfg,
 		}
 		case MP_DATETIME:
 		{
-			struct datetime *date = luaT_pushdatetime(L);
+			struct datetime *date = luaT_newdatetime(L);
 			date = datetime_unpack(data, len, date);
 			if (date == NULL)
 				goto ext_decode_err;
@@ -413,7 +413,7 @@ luamp_decode(struct lua_State *L, struct luaL_serializer *cfg,
 		}
 		case MP_INTERVAL:
 		{
-			struct interval *itv = luaT_pushinterval(L);
+			struct interval *itv = luaT_newinterval(L);
 			itv = interval_unpack(data, itv);
 			if (itv == NULL)
 				goto ext_decode_err;

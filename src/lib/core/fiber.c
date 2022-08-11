@@ -43,8 +43,12 @@
 #include "trigger.h"
 #include "errinj.h"
 #include "clock.h"
+#include "tt_sigaction.h"
 
 extern void cord_on_yield(void);
+
+static struct fiber_slice zero_slice = {.warn = 0.0, .err = 0.0};
+static struct fiber_slice default_slice = {.warn = 0.5, .err = 1.0};
 
 static inline void
 clock_stat_add_delta(struct clock_stat *stat, uint64_t clock_delta)
@@ -359,6 +363,21 @@ static void
 cord_add_garbage(struct cord *cord, struct fiber *f);
 
 /**
+ * Reset slice for currently running fiber.
+ * The function is used on yields by main cord.
+ */
+static inline void
+cord_reset_slice(struct fiber *f)
+{
+	assert(cord_is_main());
+	cord()->call_time = clock_lowres_monotonic();
+	struct fiber_slice new_slice = cord()->max_slice;
+	if ((f->flags & FIBER_CUSTOM_SLICE) != 0)
+		new_slice = f->max_slice;
+	cord()->slice = new_slice;
+}
+
+/**
  * Transfer control to callee fiber.
  */
 static void
@@ -385,6 +404,9 @@ fiber_call_impl(struct fiber *callee)
 	caller->flags &= ~FIBER_IS_RUNNING;
 	cord->fiber = callee;
 	callee->flags = (callee->flags & ~FIBER_IS_READY) | FIBER_IS_RUNNING;
+
+	if (cord_is_main())
+		cord_reset_slice(callee);
 
 	ASAN_START_SWITCH_FIBER(asan_state, 1,
 				callee->stack,
@@ -675,8 +697,10 @@ fiber_yield(void)
 	if (! rlist_empty(&caller->on_yield))
 		trigger_run(&caller->on_yield, NULL);
 
-	if (cord_is_main())
+	if (cord_is_main()) {
 		cord_on_yield();
+		cord_reset_slice(callee);
+	}
 
 	clock_set_on_csw(caller);
 
@@ -1257,6 +1281,7 @@ fiber_new_ex(const char *name, const struct fiber_attr *fiber_attr,
 	fiber->fid = cord->next_fid;
 	fiber_set_name(fiber, name);
 	register_fid(fiber);
+	fiber->max_slice = zero_slice;
 	fiber->csw = 0;
 #ifdef ENABLE_BACKTRACE
 	fiber->parent_bt = NULL;
@@ -1487,6 +1512,8 @@ cord_create(struct cord *cord, const char *name)
 	fiber_set_name(&cord->sched, "sched");
 	cord->fiber = &cord->sched;
 	cord->sched.flags = FIBER_IS_RUNNING;
+	cord->sched.max_slice = zero_slice;
+	cord->max_slice = default_slice;
 
 	cord->next_fid = FIBER_ID_MAX_RESERVED + 1;
 	/*
@@ -1847,12 +1874,59 @@ fiber_init(int (*invoke)(fiber_func f, va_list ap))
 	main_thread_id = pthread_self();
 	main_cord.loop = ev_default_loop(EVFLAG_AUTO | EVFLAG_ALLOCFD);
 	cord_create(&main_cord, "main");
+	fiber_signal_init();
 }
 
 void
 fiber_free(void)
 {
 	cord_destroy(&main_cord);
+}
+
+/**
+ * True if fiber_signal_init was called.
+ * Needed for re-entrancy of fiber signal initialization.
+ */
+static bool signal_initialized;
+
+/** Reset current slice on SIGURG. */
+static void
+signal_sigurg_cb(int signum)
+{
+	(void)signum;
+	assert(cord_is_main());
+	fiber_set_slice(zero_slice);
+}
+
+void
+fiber_signal_init(void)
+{
+	assert(cord_is_main());
+	if (signal_initialized)
+		return;
+	signal_initialized = true;
+	clock_lowres_signal_init();
+
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = signal_sigurg_cb;
+	if (tt_sigaction(SIGURG, &sa, NULL) == -1)
+		panic_syserror("cannot set fiber sigurg handler");
+}
+
+void
+fiber_signal_reset(void)
+{
+	assert(cord_is_main());
+	assert(signal_initialized);
+	signal_initialized = false;
+	clock_lowres_signal_reset();
+
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_DFL;
+	if (tt_sigaction(SIGURG, &sa, NULL) == -1)
+		say_syserror("cannot reset fiber sigurg handler");
 }
 
 int fiber_stat(fiber_stat_cb cb, void *cb_ctx)

@@ -3440,16 +3440,16 @@ port_vdbemem_dump_lua(struct port *base, struct lua_State *L, bool is_flat)
 			lua_pushboolean(L, mem->u.b);
 			break;
 		case MEM_TYPE_UUID:
-			*luaL_pushuuid(L) = mem->u.uuid;
+			luaT_pushuuid(L, &mem->u.uuid);
 			break;
 		case MEM_TYPE_DEC:
-			*lua_pushdecimal(L) = mem->u.d;
+			luaT_pushdecimal(L, &mem->u.d);
 			break;
 		case MEM_TYPE_DATETIME:
-			*luaT_pushdatetime(L) = mem->u.dt;
+			luaT_pushdatetime(L, &mem->u.dt);
 			break;
 		case MEM_TYPE_INTERVAL:
-			*luaT_pushinterval(L) = mem->u.itv;
+			luaT_pushinterval(L, &mem->u.itv);
 			break;
 		default:
 			unreachable();
@@ -3545,13 +3545,21 @@ port_lua_get_vdbemem(struct port *base, uint32_t *size)
 			val[i].u.b = field.bval;
 			break;
 		case MP_FLOAT:
-			val[i].type = MEM_TYPE_DOUBLE;
 			assert(val[i].flags == 0);
+			if (sqlIsNaN(field.fval)) {
+				val[i].type = MEM_TYPE_NULL;
+				break;
+			}
+			val[i].type = MEM_TYPE_DOUBLE;
 			val[i].u.r = field.fval;
 			break;
 		case MP_DOUBLE:
-			val[i].type = MEM_TYPE_DOUBLE;
 			assert(val[i].flags == 0);
+			if (sqlIsNaN(field.dval)) {
+				val[i].type = MEM_TYPE_NULL;
+				break;
+			}
+			val[i].type = MEM_TYPE_DOUBLE;
 			val[i].u.r = field.dval;
 			break;
 		case MP_INT:
@@ -3667,6 +3675,7 @@ port_c_get_vdbemem(struct port *base, uint32_t *size)
 		uint32_t len;
 		mem_clear(&val[i]);
 		const char *str;
+		double d;
 		switch (mp_typeof(*data)) {
 		case MP_BOOL:
 			val[i].type = MEM_TYPE_BOOL;
@@ -3674,14 +3683,24 @@ port_c_get_vdbemem(struct port *base, uint32_t *size)
 			val[i].u.b = mp_decode_bool(&data);
 			break;
 		case MP_FLOAT:
-			val[i].type = MEM_TYPE_DOUBLE;
+			d = mp_decode_float(&data);
 			assert(val[i].flags == 0);
-			val[i].u.r = mp_decode_float(&data);
+			if (sqlIsNaN(d)) {
+				val[i].type = MEM_TYPE_NULL;
+				break;
+			}
+			val[i].type = MEM_TYPE_DOUBLE;
+			val[i].u.r = d;
 			break;
 		case MP_DOUBLE:
-			val[i].type = MEM_TYPE_DOUBLE;
+			d = mp_decode_double(&data);
 			assert(val[i].flags == 0);
-			val[i].u.r = mp_decode_double(&data);
+			if (sqlIsNaN(d)) {
+				val[i].type = MEM_TYPE_NULL;
+				break;
+			}
+			val[i].type = MEM_TYPE_DOUBLE;
+			val[i].u.r = d;
 			break;
 		case MP_INT:
 			val[i].type = MEM_TYPE_INT;

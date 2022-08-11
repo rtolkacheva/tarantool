@@ -180,6 +180,14 @@ if(EMBED_LUAZIP)
         ${PROJECT_SOURCE_DIR}/third_party/luazip/src/luazip.c)
 endif()
 
+# List of header files to scan for the module API declarations.
+#
+# Blocks of the following kind are extracted from the headers and
+# placed into the module.h file.
+#
+# /** \cond public */
+# <...>
+# /** \endcond public */
 set(api_headers
     ${PROJECT_BINARY_DIR}/src/trivia/config.h
     ${PROJECT_SOURCE_DIR}/src/trivia/util.h
@@ -192,23 +200,21 @@ set(api_headers
     ${PROJECT_SOURCE_DIR}/src/box/ibuf.h
     ${PROJECT_SOURCE_DIR}/src/lua/utils.h
     ${PROJECT_SOURCE_DIR}/src/lua/error.h
-    ${PROJECT_SOURCE_DIR}/src/lua/string.h
     ${PROJECT_SOURCE_DIR}/src/box/txn.h
     ${PROJECT_SOURCE_DIR}/src/box/tuple.h
     ${PROJECT_SOURCE_DIR}/src/box/key_def.h
-    ${PROJECT_SOURCE_DIR}/src/box/lua/key_def.h
     ${PROJECT_SOURCE_DIR}/src/box/field_def.h
     ${PROJECT_SOURCE_DIR}/src/box/tuple_format.h
-    ${PROJECT_SOURCE_DIR}/src/box/tuple_extract_key.h
     ${PROJECT_SOURCE_DIR}/src/box/schema_def.h
     ${PROJECT_SOURCE_DIR}/src/box/box.h
     ${PROJECT_SOURCE_DIR}/src/box/index.h
     ${PROJECT_SOURCE_DIR}/src/box/iterator_type.h
     ${PROJECT_SOURCE_DIR}/src/box/error.h
-    ${PROJECT_SOURCE_DIR}/src/box/lua/call.h
     ${PROJECT_SOURCE_DIR}/src/box/lua/tuple.h
     ${PROJECT_SOURCE_DIR}/src/lib/core/latch.h
     ${PROJECT_SOURCE_DIR}/src/lib/core/clock.h
+    ${PROJECT_SOURCE_DIR}/src/box/decimal.h
+    ${PROJECT_SOURCE_DIR}/src/lua/decimal.h
 )
 rebuild_module_api(${api_headers})
 
@@ -341,6 +347,9 @@ add_dependencies(tarantool build_bundled_libs preprocess_exports)
 # Re-link if exports changed
 set_target_properties(tarantool PROPERTIES LINK_DEPENDS ${exports_file})
 
+# TODO(gh-7424): Autogenerate the list of internal symbols.
+add_library(symbols STATIC symbols.c)
+
 # A note about linkers:
 # [GNU linker] When linking an *executable* visibility is ignored, and
 #              either nothing is exported (default), or any non-static
@@ -355,13 +364,13 @@ set_target_properties(tarantool PROPERTIES LINK_DEPENDS ${exports_file})
 #                from static libraries.
 #
 if (TARGET_OS_DARWIN)
-    target_link_libraries(tarantool box ${common_libraries})
+    target_link_libraries(tarantool box symbols ${common_libraries})
     set_target_properties(tarantool PROPERTIES
         LINK_FLAGS "-Wl,-exported_symbols_list,${exports_file}")
 else ()
     target_link_libraries(tarantool
                           -Wl,--whole-archive box ${reexport_libraries}
-                          salad -Wl,--no-whole-archive
+                          salad symbols -Wl,--no-whole-archive
                           ${common_libraries}
                           ${generic_libraries})
     set_target_properties(tarantool PROPERTIES

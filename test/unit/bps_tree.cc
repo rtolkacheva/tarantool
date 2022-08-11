@@ -292,7 +292,7 @@ check_trees_are_identical(test *tree, sptree_test *spt_test)
 	if (test_size(tree) != spt_test->size)
 		return false;
 	int n = test_size(tree);
-	test_iterator iterator = test_iterator_first(tree);
+	test_iterator iterator = test_first(tree);
 	sptree_test_iterator *spitr = sptree_test_iterator_init(spt_test);
 	for (int i = 0; i < n; i++) {
 		type_t v1 = *test_iterator_get_elem(tree, &iterator);
@@ -554,17 +554,17 @@ compare_with_sptree_check_branches()
 			fail("trees identity", "false");
 	}
 
-	if (tree.debug_insert_leaf_branches_mask !=
-	    tree.debug_insert_leaf_branches_max_mask)
+	if (tree.common.debug_insert_leaf_branches_mask !=
+	    tree.common.debug_insert_leaf_branches_max_mask)
 		fail("not all insert leaf branches was tested", "true");
-	if (tree.debug_insert_inner_branches_mask !=
-	    tree.debug_insert_inner_branches_max_mask)
+	if (tree.common.debug_insert_inner_branches_mask !=
+	    tree.common.debug_insert_inner_branches_max_mask)
 		fail("not all insert inner branches was tested", "true");
-	if (tree.debug_delete_leaf_branches_mask !=
-	    tree.debug_delete_leaf_branches_max_mask)
+	if (tree.common.debug_delete_leaf_branches_mask !=
+	    tree.common.debug_delete_leaf_branches_max_mask)
 		fail("not all delete leaf branches was tested", "true");
-	if (tree.debug_delete_inner_branches_mask !=
-	    tree.debug_delete_inner_branches_max_mask)
+	if (tree.common.debug_delete_inner_branches_mask !=
+	    tree.common.debug_delete_inner_branches_max_mask)
 		fail("not all delete inner branches was tested", "true");
 
 	sptree_test_destroy(&spt_test);
@@ -611,7 +611,7 @@ loading_test()
 			fail("debug check nonzero", "true");
 
 		struct test_iterator iterator;
-		iterator = test_iterator_first(&tree);
+		iterator = test_first(&tree);
 		for (type_t j = 0; j < i; j++) {
 			type_t *v = test_iterator_get_elem(&tree, &iterator);
 			if (!v || *v != j)
@@ -763,7 +763,7 @@ approximate_count()
 	for (uint64_t i = 0; i < count; i++)
 		approx_insert(&tree, arr[i], NULL, NULL);
 
-	printf("Count: %zu\n", tree.size);
+	printf("Count: %zu\n", approx_size(&tree));
 
 	count = 0;
 	int err_count = 0;

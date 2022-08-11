@@ -31,6 +31,7 @@
 #include "lua/utils.h"
 #include <lj_trace.h>
 
+#include <string.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -38,6 +39,7 @@
 #include <diag.h>
 #include <fiber.h>
 #include "tt_uuid.h"
+#include "core/datetime.h"
 
 int luaL_nil_ref = LUA_REFNIL;
 
@@ -105,13 +107,21 @@ luaL_pushcdata(struct lua_State *L, uint32_t ctypeid)
 }
 
 struct tt_uuid *
-luaL_pushuuid(struct lua_State *L)
+luaT_newuuid(struct lua_State *L)
 {
 	return luaL_pushcdata(L, CTID_UUID);
 }
 
+struct tt_uuid *
+luaT_pushuuid(struct lua_State *L, const struct tt_uuid *uuid)
+{
+	struct tt_uuid *res = luaT_newuuid(L);
+	memcpy(res, uuid, sizeof(struct tt_uuid));
+	return res;
+}
+
 void
-luaL_pushuuidstr(struct lua_State *L, const struct tt_uuid *uuid)
+luaT_pushuuidstr(struct lua_State *L, const struct tt_uuid *uuid)
 {
 	/*
 	 * Do not use a global buffer. It might be overwritten if GC starts
@@ -123,15 +133,31 @@ luaL_pushuuidstr(struct lua_State *L, const struct tt_uuid *uuid)
 }
 
 struct datetime *
-luaT_pushdatetime(struct lua_State *L)
+luaT_newdatetime(struct lua_State *L)
 {
 	return luaL_pushcdata(L, CTID_DATETIME);
 }
 
+struct datetime *
+luaT_pushdatetime(struct lua_State *L, const struct datetime *dt)
+{
+	struct datetime *res = luaT_newdatetime(L);
+	memcpy(res, dt, sizeof(struct datetime));
+	return res;
+}
+
 struct interval *
-luaT_pushinterval(struct lua_State *L)
+luaT_newinterval(struct lua_State *L)
 {
 	return luaL_pushcdata(L, CTID_INTERVAL);
+}
+
+struct interval *
+luaT_pushinterval(struct lua_State *L, const struct interval *itv)
+{
+	struct interval *res = luaT_newinterval(L);
+	memcpy(res, itv, sizeof(struct interval));
+	return res;
 }
 
 int
