@@ -1,6 +1,6 @@
 # External dependencies
 include(ProtobufMutator)
-include(protobuf) # FIXME double building protobuf
+include(protobuf) # FIXME: double building protobuf
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -23,7 +23,7 @@ target_link_libraries(sql-query-proto
                       ${PROTOBUF_LIBRARIES}
                       )
 
-target_link_libraries(sql_fuzzer PUBLIC box sql-query-proto ${LPM_LIBRARIES} fuzzer_config)
+target_link_libraries(sql_fuzzer PUBLIC box core sql-query-proto ${LPM_LIBRARIES} fuzzer_config)
 
 # set_property(TARGET sql_fuzzer
 #              PROPERTY COMPILE_FLAGS "-fsanitize=fuzzer-no-link,address -fsanitize-coverage=trace-cmp -fprofile-instr-generate -fcoverage-mapping -g")
@@ -34,3 +34,7 @@ set_property(TARGET sql-query-proto
 #                       ${LPM_LIBRARIES}
 #                       "-fsanitize=fuzzer,address -fsanitize-coverage=trace-cmp -fprofile-instr-generate"
 #                       )
+
+
+add_executable(test_sql main.cc ${PROJECT_SOURCE_DIR}/test/unit/box_test_utils.c)
+target_link_libraries(test_sql PUBLIC box core -fsanitize=address)
