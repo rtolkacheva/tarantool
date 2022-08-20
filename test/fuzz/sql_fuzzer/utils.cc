@@ -18,14 +18,14 @@ engine_init(void)
      * so it must be registered first.
      */
     struct memtx_engine *memtx;
-    memtx = memtx_engine_new_xc(cfg_gets("memtx_dir"),
-                    cfg_geti("force_recovery"),
-                    cfg_getd("memtx_memory"),
-                    cfg_geti("memtx_min_tuple_size"),
-                    cfg_geti("strip_core"),
-                    cfg_geti("slab_alloc_granularity"),
-                    cfg_gets("memtx_allocator"),
-                    cfg_getd("slab_alloc_factor"));
+    memtx = memtx_engine_new(".",
+                    false,
+                    256 * 1024 *1024,
+                    16,
+                    true,
+                    8,
+                    "small",
+                    1.05);
     engine_register((struct engine *)memtx);
     box_set_memtx_max_tuple_size();
 

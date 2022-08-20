@@ -39,5 +39,10 @@ set_property(TARGET sql-query-proto
 set(LIBUTIL_FREEBSD_SRC ${PROJECT_SOURCE_DIR}/third_party/libutil_freebsd)
 include_directories(${LIBUTIL_FREEBSD_SRC})
 
-add_executable(test_sql main.cc )
-target_link_libraries(test_sql PUBLIC tntc-tarantool ${MSGPUCK_LIBRARIES} -fsanitize=address)
+add_executable(test_sql main.cc 
+${PROJECT_SOURCE_DIR}/test/unit/box_test_utils.c 
+    utils.c
+    utils.cc
+    ${LIBUTIL_FREEBSD_SRC}/flopen.c
+    ${LIBUTIL_FREEBSD_SRC}/pidfile.c)
+target_link_libraries(test_sql PUBLIC box core -fsanitize=address)
