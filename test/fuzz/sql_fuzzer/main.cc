@@ -6,6 +6,7 @@
 #include "box/error.h"
 #include "box/execute.h"
 #include "box/iproto.h"
+#include "box/lua/init.h"
 #include "box/memtx_tx.h"
 #include "box/module_cache.h"
 #include "box/sql.h"
@@ -28,6 +29,31 @@
 #include "systemd.h"
 #include "trivia/util.h"
 #include "utils.h"
+
+#include "lua/init.h"
+#include "lua/utils.h"
+#include <lua.h>
+#include <lualib.h>
+#include <luajit.h>
+#include "lua/backtrace.h"
+#include "lua/fiber.h"
+#include "lua/fiber_cond.h"
+#include "lua/fiber_channel.h"
+#include "lua/errno.h"
+#include "lua/socket.h"
+#include "lua/utils.h"
+#include "lua/serializer.h"
+#include <lua-cjson/lua_cjson.h>
+#include <lua-yaml/lyaml.h>
+#include "lua/msgpack.h"
+#include "lua/pickle.h"
+#include "lua/fio.h"
+#include "lua/popen.h"
+#include "lua/httpc.h"
+#include "lua/utf8.h"
+#include "lua/swim.h"
+#include "lua/decimal.h"
+#include "lua/uri.h"
 
 void my_box_cfg(void)
 {
@@ -60,6 +86,29 @@ void my_box_cfg(void)
     }
 }
 
+static void fuzzer_lua_init() 
+{
+    lua_State *L = luaL_newstate();
+	if (L == NULL) {
+		panic("failed to initialize Lua");
+	}
+	luaL_openlibs(L);
+
+	/* Initialize ffi to enable luaL_pushcdata/luaL_checkcdata functions */
+	luaL_loadstring(L, "return require('ffi')");
+	lua_call(L, 0, 0);
+    luaopen_http_client_driver(L);
+	lua_pop(L, 1);
+	luaopen_msgpack(L);
+	lua_pop(L, 1);
+	luaopen_yaml(L);
+	lua_pop(L, 1);
+	luaopen_json(L);
+	lua_pop(L, 1);
+    lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+	lua_settop(L, 0);
+}
+
 int main(int argc, char **argv)
 {
     start_time = ev_monotonic_time();
@@ -76,6 +125,8 @@ int main(int argc, char **argv)
     ssl_init();                   //+
     systemd_init();               //+
     box_init();                   //+
+    fuzzer_lua_init();
+    box_lua_init(tarantool_L);
 
     my_box_cfg();
 

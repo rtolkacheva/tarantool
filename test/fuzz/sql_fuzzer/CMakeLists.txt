@@ -45,4 +45,4 @@ ${PROJECT_SOURCE_DIR}/test/unit/box_test_utils.c
     utils.cc
     ${LIBUTIL_FREEBSD_SRC}/flopen.c
     ${LIBUTIL_FREEBSD_SRC}/pidfile.c)
-target_link_libraries(test_sql PUBLIC box core -fsanitize=address)
+target_link_libraries(test_sql PUBLIC ${lua_sources} ${LUAJIT_LIBRARIES} box core -fsanitize=address)
