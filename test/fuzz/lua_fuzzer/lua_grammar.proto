@@ -1,0 +1,310 @@
+/*
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright 2022, Tarantool AUTHORS, please see AUTHORS file.
+ */
+
+/* Grammar is for Lua 5.1 */
+syntax = "proto2";
+package lua_grammar;
+
+
+message LuaBlock {
+    required Chunk cur_chunk = 1;
+}
+
+message Chunk {
+    repeated StatementWithSemicolon stat = 1;
+    optional LastStatementWithSemicolon last = 2;
+}
+
+message StatementWithSemicolon {
+    required Statement stat = 1;
+    optional bool semicolon = 2;
+}
+
+message LastStatementWithSemicolon {
+    required LastStatement stat = 1;
+    optional bool semicolon = 2;
+}
+
+message Statement {
+    oneof stat_oneof {
+        AssignmentList list = 1;
+        FunctionCall call = 2;
+        DoBlock block = 3;
+        WhileCycle whileCycle = 4;
+        RepeatCycle repeatCycle = 5;
+        IfStatement ifStat = 6;
+        ForCycleName forCycleName = 7;
+        ForCycleList forCycleList = 8;
+        Function func = 9;
+        LocalFunc localFunc = 10;
+        LocalNames names = 11;
+    }
+}
+
+message AssignmentList {
+    required VariableList varList = 1;
+    required ExpressionList exprList = 2;
+}
+
+message FunctionCall {
+    oneof call_oneof {
+        PrefixArgs prefArgs = 1;
+        PrefixNamedArgs namedArgs = 2;
+    }
+}
+
+message PrefixArgs {
+    required PrefixExpression prefix = 1;
+    required Args arguments = 2;
+}
+
+message PrefixNamedArgs {
+    required PrefixExpression prefix = 1;
+    required string name = 2;
+    required Args arguments = 3;
+}
+
+message Args {
+    oneof args_oneof {
+        OptionalExpressionList exprList = 1;
+        TableConstructor table = 2;
+        string str = 3;
+    }
+}
+
+message DoBlock {
+    required LuaBlock block = 1;
+}
+
+message WhileCycle {
+    required Expression condition = 1;
+    required LuaBlock code = 2;
+}
+
+message RepeatCycle {
+    required LuaBlock code = 1;
+    required Expression condition = 2;
+}
+
+message IfStatement {
+    required Expression firstCondition = 1;
+    required LuaBlock firstBlock = 2;
+    repeated ElseIf clauses = 3;
+    optional LuaBlock lastBlock = 4;
+}
+
+message ElseIf {
+    required Expression condition = 1;
+    required LuaBlock code = 2;
+}
+
+message ForCycleName {
+    required string name = 1;
+    required Expression init = 2;
+    required Expression max_min = 3;
+    optional Expression increment = 4;
+    required LuaBlock code = 5;
+}
+
+message ForCycleList {
+    required NameList names = 1;
+    required ExpressionList expressions = 2;
+    required LuaBlock code = 3;
+}
+
+message Function {
+    required FuncName name = 1;
+    required FuncBody body = 2;
+}
+
+message FuncName {
+    required string firstName = 1;
+    repeated string names = 2;
+    optional string lastName = 3;
+}
+
+message FuncBody {
+    optional ParList list = 1;
+    required LuaBlock block = 2;
+}
+
+message ParList {
+    oneof parlist_oneof {
+        NameListWithEllipsis list = 1;
+        string ellipsis = 2;
+    }
+}
+
+message NameListWithEllipsis {
+    required NameList names = 1;
+    optional string ellipsis = 2;
+}
+
+message NameList {
+    required string firstName = 1;
+    repeated string names = 2;
+}
+
+message LocalFunc {
+    required string name = 1;
+    required FuncBody body = 2;
+}
+
+message LocalNames {
+    required NameList names = 1;
+    optional ExpressionList expressions = 2;
+}
+
+message LastStatement {
+    oneof last_oneof {
+        ReturnLast return = 1;
+        uint32 break = 2;
+    }
+}
+
+message ReturnLast {
+    optional ExpressionList exprList = 1;
+}
+
+message VariableList {
+    required Variable var = 1;
+    repeated Variable varNext = 2;
+}
+
+message ExpressionList {
+    repeated Expression expr = 1;
+    required Expression lastExpr = 2;
+}
+
+message OptionalExpressionList {
+    optional ExpressionList list = 1;
+}
+
+message Variable {
+    oneof var_oneof {
+        string name = 1;
+        PrefixExpressionWithExpression expr = 2;
+        PrefixExpressionWithName exprName = 3;
+    }
+}
+
+message PrefixExpressionWithExpression {
+    required PrefixExpression prefix = 1;
+    required Expression expr = 2;
+}
+
+message PrefixExpressionWithName {
+    required PrefixExpression prefix = 1;
+    required string name = 2;
+}
+
+message PrefixExpression {
+    oneof prefix_oneof {
+        Variable var = 1;
+        FunctionCall call = 2;
+        Expression expr = 3;
+    }
+}
+
+message Expression {
+    oneof expr_oneof {
+        uint32 nil = 1;
+        uint32 false = 2;
+        uint32 true = 3;
+        int64 number = 4;
+        string str = 5;
+        uint32 ellipsis = 6;
+        AnonFunc func = 7;
+        PrefixExpression prefExpr = 8;
+        TableConstructor table = 9;
+        ExpBinaryOpExp expBinary = 10;
+        UnaryOpExp expUnary = 11;
+    }
+}
+
+message ExpBinaryOpExp {
+    required Expression left = 1;
+    required BinaryOperator op = 2;
+    required Expression right = 3;
+}
+
+message UnaryOpExp {
+    required UnaryOperator op = 1;
+    required Expression expr = 2;
+}
+
+message AnonFunc {
+    required FuncBody body = 1;
+}
+
+message TableConstructor {
+    optional FieldList list = 1;
+}
+
+message FieldList {
+    required Field firstField = 1;
+    repeated FieldWithFieldSep fields = 2;
+    optional FieldSep lastSep = 3;
+}
+
+message FieldWithFieldSep {
+    required Field cur_field = 1;
+    required FieldSep sep = 2;
+}
+
+message Field {
+    oneof field_oneof {
+        ExpressionEqualExpression exprDouble = 1;
+        NameEqualExpression name = 2;
+        Expression expr = 3;
+    }
+}
+
+message ExpressionEqualExpression {
+    required Expression leftExpr = 1;
+    required Expression rightExpr = 2;
+}
+
+message NameEqualExpression {
+    required string name = 1;
+    required Expression expr = 2;
+}
+
+message FieldSep {
+    oneof sep_oneof {
+        uint32 comma = 1;
+        uint32 semicolon = 2;
+    }
+}
+
+message BinaryOperator {
+    oneof binary_oneof {
+        uint32 add = 1;
+        uint32 sub = 2;
+        uint32 mult = 3;
+        uint32 div = 4;
+        uint32 exp = 5;
+        uint32 mod = 6;
+        uint32 concat = 7;
+
+        uint32 less = 8;
+        uint32 lessEqual = 9;
+        uint32 greater = 10;
+        uint32 greaterEqual = 11;
+        uint32 equal = 12;
+        uint32 notEqual = 13;
+        uint32 and = 14;
+        uint32 or = 15;
+    }
+}
+
+message UnaryOperator {
+    oneof unary_oneof {
+        uint32 negate = 1;
+        uint32 not = 2;
+        uint32 length = 3;
+    }
+}
