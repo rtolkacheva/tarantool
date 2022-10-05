@@ -66,6 +66,7 @@ include(ProtobufMutator)
 
 if(ENABLE_ASAN)
     add_subdirectory(lua_fuzzer)
+    add_subdirectory(sql_fuzzer)
 else()
     message(WARNING "LPM-based fuzzers are disabled without ASAN")
 endif()
@@ -75,6 +76,7 @@ set(fuzzing_binaries csv_fuzzer
                      datetime_strptime_fuzzer
                      http_parser_fuzzer
                      mp_datetime_fuzzer
+                     sql_fuzzer
                      swim_proto_member_fuzzer
                      swim_proto_meta_fuzzer
                      uri_fuzzer
