@@ -50,6 +50,8 @@
 #include "rmean.h"
 #include "box/sql/port.h"
 
+#include "stdio.h"
+
 const char *sql_info_key_strs[] = {
 	"row_count",
 	"autoincrement_ids",
@@ -115,30 +117,36 @@ sql_reprepare(struct sql_stmt **stmt)
 int
 sql_prepare(const char *sql, int len, struct port *port)
 {
+	(void)port;
 	uint32_t stmt_id = sql_stmt_calculate_id(sql, len);
 	struct sql_stmt *stmt = sql_stmt_cache_find(stmt_id);
 	rmean_collect(rmean_box, IPROTO_PREPARE, 1);
 	if (stmt == NULL) {
-		if (sql_stmt_compile(sql, len, NULL, &stmt, NULL) != 0)
-			return -1;
-		if (sql_stmt_cache_insert(stmt) != 0) {
-			sql_stmt_finalize(stmt);
+		if (sql_stmt_compile(sql, len, NULL, &stmt, NULL) != 0) {
+			printf("Option 1\n");
 			return -1;
 		}
+		// if (sql_stmt_cache_insert(stmt) != 0) {
+		// 	sql_stmt_finalize(stmt);
+		// 	printf("Option 2\n");
+		// 	return -1;
+		// }
 	} else {
 		if (!sql_stmt_schema_version_is_valid(stmt) &&
 		    !sql_stmt_busy(stmt)) {
-			if (sql_reprepare(&stmt) != 0)
+			if (sql_reprepare(&stmt) != 0){
+				printf("Option 3\n");
 				return -1;
+			}
 		}
 	}
 	assert(stmt != NULL);
 	/* Add id to the list of available statements in session. */
-	if (!session_check_stmt_id(current_session(), stmt_id))
-		session_add_stmt_id(current_session(), stmt_id);
-	enum sql_serialization_format format = sql_column_count(stmt) > 0 ?
-					   DQL_PREPARE : DML_PREPARE;
-	port_sql_create(port, stmt, format, false);
+	// if (!session_check_stmt_id(current_session(), stmt_id))
+	// 	session_add_stmt_id(current_session(), stmt_id);
+	// enum sql_serialization_format format = sql_column_count(stmt) > 0 ?
+	// 				   DQL_PREPARE : DML_PREPARE;
+	// port_sql_create(port, stmt, format, false);
 
 	return 0;
 }

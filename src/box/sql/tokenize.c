@@ -451,23 +451,23 @@ sql_token(const char *z, int *type, bool *is_reserved)
  * @param db Database handler.
  * @param space Space to be deleted.
  */
-static void
-parser_space_delete(struct sql *db, struct space *space)
-{
-	if (space == NULL || db == NULL)
-		return;
-	assert(space->def->opts.is_ephemeral);
-	struct space *altered_space = space_by_name(space->def->name);
-	uint32_t i = 0;
-	/*
-	 * Don't delete already existing defs and start from new
-	 * ones.
-	 */
-	if (altered_space != NULL)
-		i = altered_space->index_count;
-	for (; i < space->index_count; ++i)
-		index_def_delete(space->index[i]->def);
-}
+// static void
+// parser_space_delete(struct sql *db, struct space *space)
+// {
+// 	if (space == NULL || db == NULL)
+// 		return;
+// 	assert(space->def->opts.is_ephemeral);
+// 	struct space *altered_space = space_by_name(space->def->name);
+// 	uint32_t i = 0;
+// 	/*
+// 	 * Don't delete already existing defs and start from new
+// 	 * ones.
+// 	 */
+// 	if (altered_space != NULL)
+// 		i = altered_space->index_count;
+// 	for (; i < space->index_count; ++i)
+// 		index_def_delete(space->index[i]->def);
+// }
 
 /**
  * Run the parser on the given SQL string.
@@ -559,7 +559,7 @@ sqlRunParser(Parse * pParse, const char *zSql)
 		sqlVdbeDelete(pParse->pVdbe);
 		pParse->pVdbe = 0;
 	}
-	parser_space_delete(db, pParse->create_column_def.space);
+	// parser_space_delete(db, pParse->create_column_def.space);
 
 	if (pParse->pWithToFree)
 		sqlWithDelete(db, pParse->pWithToFree);

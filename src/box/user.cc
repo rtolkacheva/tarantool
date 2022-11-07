@@ -40,6 +40,8 @@
 #include "sequence.h"
 #include "tt_static.h"
 
+#include <iostream>
+
 struct universe universe;
 static struct user users[BOX_USER_MAX];
 struct user *guest_user = users;
@@ -465,7 +467,10 @@ user_cache_replace(struct user_def *def)
 	struct user *user = user_by_id(def->uid);
 	if (user == NULL) {
 		uint8_t auth_token = auth_token_get();
+		std::cerr << "auth_token: " << (uint32_t)auth_token << std::endl;
 		user = users + auth_token;
+		user->auth_token = 0;
+		std::cerr << "user->: " << (uint32_t)user->auth_token << std::endl;
 		user_create(user, auth_token);
 		struct mh_i32ptr_node_t node = { def->uid, user };
 		mh_i32ptr_put(user_registry, &node, NULL, NULL);

@@ -1472,18 +1472,18 @@ sqlEndTable(struct Parse *pParse)
 	int name_reg = ++pParse->nMem;
 	sqlVdbeAddOp4(pParse->pVdbe, OP_String8, 0, name_reg, 0,
 		      space_name_copy, P4_DYNAMIC);
-	const char *error_msg =
-		tt_sprintf(tnt_errcode_desc(ER_SPACE_EXISTS), space_name_copy);
-	bool no_err = pParse->create_table_def.base.if_not_exist;
-	if (vdbe_emit_halt_with_presence_test(pParse, BOX_SPACE_ID, 2,
-					      name_reg, 1, ER_SPACE_EXISTS,
-					      error_msg, (no_err != 0),
-					      OP_NoConflict) != 0)
-		return;
+	// const char *error_msg =
+	// 	tt_sprintf(tnt_errcode_desc(ER_SPACE_EXISTS), space_name_copy);
+	// bool no_err = pParse->create_table_def.base.if_not_exist;
+	// if (vdbe_emit_halt_with_presence_test(pParse, BOX_SPACE_ID, 2,
+	// 				      name_reg, 1, ER_SPACE_EXISTS,
+	// 				      error_msg, (no_err != 0),
+	// 				      OP_NoConflict) != 0)
+	// 	return;
 
-	int reg_space_id = getNewSpaceId(pParse);
-	vdbe_emit_space_create(pParse, reg_space_id, name_reg, new_space);
-	vdbe_emit_create_constraints(pParse, reg_space_id);
+	// int reg_space_id = getNewSpaceId(pParse);
+	// vdbe_emit_space_create(pParse, reg_space_id, name_reg, new_space);
+	// vdbe_emit_create_constraints(pParse, reg_space_id);
 }
 
 void

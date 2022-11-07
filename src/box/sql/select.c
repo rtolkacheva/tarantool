@@ -5773,7 +5773,7 @@ sqlSelect(Parse * pParse,		/* The parser context */
 		p->pOrderBy = 0;
 		p->selFlags &= ~SF_Distinct;
 	}
-	sqlSelectPrep(pParse, p, 0);
+	// sqlSelectPrep(pParse, p, 0);
 	memset(&sSort, 0, sizeof(sSort));
 	sSort.pOrderBy = p->pOrderBy;
 	pTabList = p->pSrc;

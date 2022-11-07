@@ -14,10 +14,19 @@
 #include "box/module_cache.h"
 #include "box/sql.h"
 
+#include "box/execute.h"
+#include "core/port.h"
+#include "rmean.h"
+
 #define SUCCESS 0
+
+extern struct rmean *rmean_box;
 
 DEFINE_PROTO_FUZZER(const sql_query::SQLQuery &query) {
 	std::string query_str = sql_fuzzer::SQLQueryToString(query);
+
+	if (query_str.length() == 0)
+		return;
 
 	if (::getenv("LPM_DUMP_NATIVE_INPUT") && query_str.size() != 0) {
 		std::cout << "_________________________" << std::endl;
@@ -25,20 +34,27 @@ DEFINE_PROTO_FUZZER(const sql_query::SQLQuery &query) {
 		std::cout << "-------------------------" << std::endl;
 	}
 
-	if (query_str.length() == 0)
-		return;
-
 	memory_init();
 	fiber_init(fiber_cxx_invoke);
 	coll_init();
 	box_init();
 	sql_init();
 
-	struct Expr *expr = sql_expr_compile(sql_get(), query_str.data(),
-					     query_str.size());
+	struct port p;
 
-	if (expr)
-		sql_expr_delete(sql_get(), expr);
+	rmean_box = rmean_new(iproto_type_strs, IPROTO_TYPE_STAT_MAX);
+
+	auto retval = sql_prepare(query_str.data(), query_str.size(), &p);
+
+	if (retval == -1) {
+		exit(-1);
+	}
+
+	// struct Expr *expr = sql_expr_compile(sql_get(), query_str.data(),
+	// 				     query_str.size());
+
+	// if (expr)
+	// 	sql_expr_delete(sql_get(), expr);
 
 	box_free();
 	coll_free();
