@@ -3647,6 +3647,7 @@ box_free(void)
 		schema_module_free();
 		tuple_free();
 #endif
+		fiber_session_free();
 		wal_ext_free();
 		box_watcher_free();
 		box_raft_free();

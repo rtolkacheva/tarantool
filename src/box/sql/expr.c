@@ -4362,7 +4362,9 @@ sqlExprCodeTarget(Parse * pParse, Expr * pExpr, int target)
 		 * no ELSE term, NULL.
 		 */
 	default:
-		assert(op == TK_CASE); {
+		// assert(op == TK_CASE); 
+		break;
+		{
 			int endLabel;	/* GOTO label for end of CASE stmt */
 			int nextCase;	/* GOTO label for next WHEN clause */
 			int nExpr;	/* 2x number of WHEN terms */

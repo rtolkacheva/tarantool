@@ -52,6 +52,9 @@ session_init(void);
 void
 session_free(void);
 
+void
+fiber_session_free(void);
+
 enum session_type {
 	SESSION_TYPE_BACKGROUND = 0,
 	SESSION_TYPE_BINARY,

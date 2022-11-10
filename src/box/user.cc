@@ -552,6 +552,7 @@ user_cache_init(void)
 	/** Mark all tokens as unused. */
 	memset(tokens, 0xFF, sizeof(tokens));
 	user_registry = mh_i32ptr_new();
+	memset(users, 0, BOX_USER_MAX * sizeof(*users));
 	/*
 	 * Solve a chicken-egg problem:
 	 * we need a functional user cache entry for superuser to

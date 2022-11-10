@@ -4073,6 +4073,7 @@ where_loop_assign_terms(struct WhereLoop *loop, struct WhereClause *where,
  *         handled by this no-frills query planner. Return zero
  *         if this query needs the general-purpose query planner.
  */
+__attribute_maybe_unused__
 static int
 where_loop_builder_shortcut(struct WhereLoopBuilder *builder)
 {
@@ -4432,7 +4433,8 @@ sqlWhereBegin(Parse * pParse,	/* The parser context */
 	}
 #endif
 
-	if (nTabList != 1 || where_loop_builder_shortcut(&sWLB) == 0) {
+	if (nTabList != 1) {
+	// if (nTabList != 1 || where_loop_builder_shortcut(&sWLB) == 0) {
 		rc = whereLoopAddAll(&sWLB);
 		if (rc)
 			goto whereBeginError;
@@ -4554,7 +4556,8 @@ sqlWhereBegin(Parse * pParse,	/* The parser context */
 	/* Open all tables in the pTabList and any indices selected for
 	 * searching those tables.
 	 */
-	for (ii = 0, pLevel = pWInfo->a; ii < nTabList; ii++, pLevel++) {
+	for (;false;) {
+	// for (ii = 0, pLevel = pWInfo->a; ii < nTabList; ii++, pLevel++) {
 		struct SrcList_item *pTabItem = &pTabList->a[pLevel->iFrom];
 		struct space_def *space_def = pTabItem->space->def;
 		pLoop = pLevel->pWLoop;

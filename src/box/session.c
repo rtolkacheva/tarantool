@@ -430,6 +430,13 @@ session_free(void)
 	credentials_destroy(&admin_credentials);
 }
 
+
+void
+fiber_session_free(void)
+{
+	fiber_set_session(fiber(), NULL);
+}
+
 int
 access_check_session(struct user *user)
 {

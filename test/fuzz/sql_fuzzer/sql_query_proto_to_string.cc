@@ -854,7 +854,7 @@ CONV_FN(OrderByExpression, order_by_expr) {
 CONV_FN(OrderBy, order_by) {
 	std::string ret = "ORDER BY "
 		+ OrderByExpressionToString(order_by.expr());
-	for (int i = 0; i <= order_by.extra_exprs_size(); ++i) {
+	for (int i = 0; i < order_by.extra_exprs_size(); ++i) {
 		ret += ", "
 			+ OrderByExpressionToString(order_by.extra_exprs(i));
 	}
