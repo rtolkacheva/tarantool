@@ -235,15 +235,16 @@ public:
 	}
 
 private:
-
 	std::string get_exit_statement_() {
-		assert(!block_stack_.empty());
-		switch (block_stack_.top()) {
-		case BlockType::Breakable:
-			return "break";
-		case BlockType::Returnable:
-			return "return";
+		if(!block_stack_.empty()) {
+			switch (block_stack_.top()) {
+			case BlockType::Breakable:
+				return "break";
+			case BlockType::Returnable:
+				return "return";
+			}
 		}
+		return "";
 	}
 
 	std::stack<BlockType> block_stack_;
@@ -383,20 +384,26 @@ PROTO_TOSTRING(LastStatement, laststat)
 	using LastStatType = LastStatement::LastOneofCase;
 	switch (laststat.last_oneof_case()) {
 	case LastStatType::kExplist:
-		laststat_str = ReturnOptionalExpressionListToString(
-			laststat.explist());
+		if (GetContext().return_is_possible()) {
+			laststat_str = ReturnOptionalExpressionListToString(
+				laststat.explist());
+		}
 		break;
 	case LastStatType::kBreak:
-		laststat_str = "break";
+		if (GetContext().break_is_possible()) {
+			laststat_str = "break";
+		}
 		break;
 	default:
 		/* Chosen as default in order to decrease number of 'break's. */
-		laststat_str = ReturnOptionalExpressionListToString(
-			laststat.explist());
+		if (GetContext().return_is_possible()) {
+			laststat_str = ReturnOptionalExpressionListToString(
+				laststat.explist());
+		}
 		break;
 	}
 
-	if (laststat.has_semicolon())
+	if (!laststat_str.empty() && laststat.has_semicolon())
 		laststat_str += "; ";
 
 	return laststat_str;
