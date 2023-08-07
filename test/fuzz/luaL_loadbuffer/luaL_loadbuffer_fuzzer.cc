@@ -10,11 +10,15 @@ extern "C"
 #include <lmisclib.h>
 }
 
+#include <fstream>
+
 #include "lua_grammar.pb.h"
 #include "serializer.h"
 
 #include <libprotobuf-mutator/port/protobuf.h>
 #include <libprotobuf-mutator/src/libfuzzer/libfuzzer_macro.h>
+
+#include <google/protobuf/text_format.h>
 
 #define PRINT_METRIC(desc, val, total) \
 		std::cerr << (desc) << (val) \
@@ -116,6 +120,17 @@ DEFINE_PROTO_FUZZER(const lua_grammar::Block &message)
 	if (::getenv("LPM_DUMP_NATIVE_INPUT") && code.size() != 0) {
 		std::cout << "-------------------------" << std::endl;
 		std::cout << code << std::endl;
+	}
+
+	if (::getenv("LPM_DUMP_PROTO_INPUT")) {
+		std::string message_str;
+		google::protobuf::TextFormat::PrintToString(message, &message_str);
+		std::string file_name = "./protos/" + std::to_string(metrics.total_num) + ".test";
+		std::ofstream file(file_name);
+		if (!file.is_open()) {
+			std::cout << "failed to open " << file_name << std::endl;
+		}
+		file << message_str << std::endl;
 	}
 
 	luaL_openlibs(L);
