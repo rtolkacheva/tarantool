@@ -43,9 +43,32 @@ check() {
     echo "Total number of samples with recorded traces: $trace_record_count"
 }
 
+rename() {
+    cd ./protos
+    for file in [0-9]*.test; do
+        # Extract the numeric part of the filename
+        num=$(echo "$file" | grep -o '^[0-9]*')
+        
+        # Pad the numeric part with leading zeros
+        padded_num=$(printf "%04d" "$num")
+        
+        # Extract the extension of the file
+        extension="${file##*.}"
+        
+        # Construct the new filename
+        new_filename="${padded_num}.${extension}"
+        
+        # Rename the file
+        mv "$file" "$new_filename"
+        
+    done
+    cd ..
+}
+
 run_all() {
     compile
     generate
+    rename
     check
 }
 
@@ -55,6 +78,7 @@ while [[ "$#" -gt 0 ]]; do
         compile) SUBCOMMAND=compile ;;
         generate) SUBCOMMAND=generate ;;
         check) SUBCOMMAND=check ;;
+        rename) SUBCOMMAND=rename ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
