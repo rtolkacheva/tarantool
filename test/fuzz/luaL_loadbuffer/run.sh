@@ -1,5 +1,8 @@
 #!/bin/bash
 
+log=log.txt
+detailed_log=detailed_log.txt
+
 compile() {
     cmake --build build -t luaL_loadbuffer_fuzzer
 }
@@ -65,6 +68,40 @@ rename() {
     cd ..
 }
 
+check_verbose() {
+    export LUA_FUZZER_VERBOSE=1
+    echo -n > $log
+    echo -n > $detailed_log
+    for file in ./protos/*.test
+    do
+        echo "Processing $file"
+        output=`./build/test/fuzz/luaL_loadbuffer/luaL_loadbuffer_fuzzer $file 2>&1 | grep -E '^luaL_loadbuffer|^lua_pcall'`
+        
+        while IFS= read -r line; do
+            case "$line" in
+                "") ;;
+                *) echo $line >> $detailed_log ;;
+            esac
+
+            # take only interesting information 
+            line=`echo $line | awk -F ': ' '{print $NF}'`
+
+            case "$line" in
+                "") ;;
+                *\'*\'*) echo $line | awk -F "'" '{print $(NF-2) <name> $NF}' >> $log ;;
+                *\'*\'*\'*\'*) echo $line >> $log ;;
+                *) echo $line >> $log ;;
+            esac
+        done <<< "$output"
+        # echo $output >> $log
+    done
+}
+
+process_verbose() {
+    sort $log | uniq -c | sort -nr
+    echo total error count: `wc $log -l`
+}
+
 run_all() {
     compile
     generate
@@ -79,6 +116,8 @@ while [[ "$#" -gt 0 ]]; do
         generate) SUBCOMMAND=generate ;;
         check) SUBCOMMAND=check ;;
         rename) SUBCOMMAND=rename ;;
+        check_verbose) SUBCOMMAND=check_verbose ;;
+        process_verbose) SUBCOMMAND=process_verbose ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
