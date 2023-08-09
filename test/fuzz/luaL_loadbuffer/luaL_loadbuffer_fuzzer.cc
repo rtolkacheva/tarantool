@@ -11,6 +11,8 @@ extern "C"
 }
 
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 
 #include "lua_grammar.pb.h"
 #include "serializer.h"
@@ -109,6 +111,12 @@ report_error(lua_State *L, const std::string &prefix)
 	std::cerr << prefix << " error: " << err_str << std::endl;
 }
 
+std::string pad_number_with_zeroes(int number, int desiredLength) {
+    std::ostringstream oss;
+    oss << std::setw(desiredLength) << std::setfill('0') << number;
+    return oss.str();
+}
+
 DEFINE_PROTO_FUZZER(const lua_grammar::Block &message)
 {
 	lua_State *L = luaL_newstate();
@@ -125,7 +133,8 @@ DEFINE_PROTO_FUZZER(const lua_grammar::Block &message)
 	if (::getenv("LPM_DUMP_PROTO_INPUT")) {
 		std::string message_str;
 		google::protobuf::TextFormat::PrintToString(message, &message_str);
-		std::string file_name = "./protos/" + std::to_string(metrics.total_num) + ".test";
+		std::string file_name = std::string(::getenv("LUA_FUZZER_PROTOS")) + "/" +
+			 pad_number_with_zeroes(metrics.total_num, std::stoi(::getenv("LUA_FUZZER_PADDING"))) + ".test";
 		std::ofstream file(file_name);
 		if (!file.is_open()) {
 			std::cout << "failed to open " << file_name << std::endl;
