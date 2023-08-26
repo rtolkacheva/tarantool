@@ -24,7 +24,6 @@ namespace {
 const std::string kCounterNamePrefix = "counter_";
 
 PROTO_TOSTRING(Block, block);
-PROTO_TOSTRING(Chunk, chunk);
 
 PROTO_TOSTRING(Statement, stat);
 
@@ -277,7 +276,7 @@ std::string
 BlockToStringCycleProtected(const Block &block)
 {
 	std::string retval = GetContext().get_next_block_setup();
-	retval += ChunkToString(block.chunk());
+	retval += BlockToString(block);
 	return retval;
 }
 
@@ -360,19 +359,27 @@ ConvertToStringDefault(const std::string &s)
 
 PROTO_TOSTRING(Block, block)
 {
-	return ChunkToString(block.chunk());
+	std::string block_str;
+	for (int i = 0; i < block.stats_size(); ++i)
+		block_str += StatementToString(block.stats(i)) + "\n";
+
+	if (block.has_laststat())
+		block_str += LastStatementToString(block.laststat()) + "\n";
+
+	return block_str;
 }
 
-PROTO_TOSTRING(Chunk, chunk)
+std::string
+LastStatementConstsToString(const LastStatement::LastStatementConsts& consts)
 {
-	std::string chunk_str;
-	for (int i = 0; i < chunk.stat_size(); ++i)
-		chunk_str += StatementToString(chunk.stat(i)) + "\n";
-
-	if (chunk.has_laststat())
-		chunk_str += LastStatementToString(chunk.laststat()) + "\n";
-
-	return chunk_str;
+	switch (consts) {
+	case LastStatement::BREAK:
+		if (GetContext().break_is_possible()) {
+			return "break";
+		}
+		break;
+	}
+	return "";
 }
 
 /**
@@ -389,10 +396,8 @@ PROTO_TOSTRING(LastStatement, laststat)
 				laststat.explist());
 		}
 		break;
-	case LastStatType::kBreak:
-		if (GetContext().break_is_possible()) {
-			laststat_str = "break";
-		}
+	case LastStatType::kConsts:
+		laststat_str = LastStatementConstsToString(laststat.consts());
 		break;
 	default:
 		/* Chosen as default in order to decrease number of 'break's. */
@@ -403,7 +408,7 @@ PROTO_TOSTRING(LastStatement, laststat)
 		break;
 	}
 
-	if (!laststat_str.empty() && laststat.has_semicolon())
+	if (!laststat_str.empty() && laststat.semicolon())
 		laststat_str += "; ";
 
 	return laststat_str;
@@ -469,7 +474,7 @@ PROTO_TOSTRING(Statement, stat)
 		break;
 	}
 
-	if (stat.has_semicolon())
+	if (stat.semicolon())
 		stat_str += "; ";
 
 	return stat_str;
@@ -503,12 +508,12 @@ PROTO_TOSTRING(FunctionCall, call)
 	using FuncCallType = FunctionCall::CallOneofCase;
 	switch (call.call_oneof_case()) {
 	case FuncCallType::kPrefArgs:
-		return PrefixArgsToString(call.prefargs());
+		return PrefixArgsToString(call.pref_args());
 	case FuncCallType::kNamedArgs:
-		return PrefixNamedArgsToString(call.namedargs());
+		return PrefixNamedArgsToString(call.named_args());
 	default:
 		/* Chosen for more variability of generated programs. */
-		return PrefixNamedArgsToString(call.namedargs());
+		return PrefixNamedArgsToString(call.named_args());
 	}
 }
 
@@ -593,13 +598,13 @@ PROTO_TOSTRING(IfStatement, statement)
 {
 	std::string statement_str = "if " +
 		ExpressionToString(statement.condition());
-	statement_str += " then\n\t" + BlockToString(statement.first());
+	statement_str += " then\n\t" + BlockToString(statement.then_block());
 
 	for (int i = 0; i < statement.clauses_size(); ++i)
 		statement_str += ElseIfBlockToString(statement.clauses(i));
 
-	if (statement.has_last())
-		statement_str += "else\n\t" + BlockToString(statement.last());
+	if (statement.has_else_block())
+		statement_str += "else\n\t" + BlockToString(statement.else_block());
 
 	statement_str += "end\n";
 	return statement_str;
@@ -679,13 +684,13 @@ PROTO_TOSTRING(Function, func)
 
 NESTED_PROTO_TOSTRING(FuncName, funcname, Function)
 {
-	std::string funcname_str = NameToString(funcname.firstname());
+	std::string funcname_str = NameToString(funcname.first_name());
 
 	for (int i = 0; i < funcname.names_size(); ++i)
 		funcname_str += "." + NameToString(funcname.names(i));
 
-	if (funcname.has_lastname())
-		funcname_str += ":" + NameToString(funcname.lastname());
+	if (funcname.has_last_name())
+		funcname_str += ":" + NameToString(funcname.last_name());
 
 	return funcname_str;
 }
@@ -706,14 +711,23 @@ NESTED_PROTO_TOSTRING(NameListWithEllipsis, namelist, FuncBody)
 	return namelist_str;
 }
 
+std::string
+ParlistConstsToString(const FuncBody::ParList::ParlistConsts &consts)
+{
+	switch (consts) {	
+	case FuncBody::ParList::ELLIPSIS:
+		return "...";
+	}
+}
+
 NESTED_PROTO_TOSTRING(ParList, parlist, FuncBody)
 {
 	using ParListType = FuncBody::ParList::ParlistOneofCase;
 	switch (parlist.parlist_oneof_case()) {
 	case ParListType::kNamelist:
 		return NameListWithEllipsisToString(parlist.namelist());
-	case ParListType::kEllipsis:
-		return "...";
+	case ParListType::kConsts:
+		return ParlistConstsToString(parlist.consts());
 	default:
 		/* Chosen as default in order to decrease number of ellipses. */
 		return NameListWithEllipsisToString(parlist.namelist());
@@ -831,6 +845,21 @@ NESTED_PROTO_TOSTRING(IndexWithName, indexname, Variable)
 	return indexname_str;
 }
 
+std::string
+ExpressionConstsToString(const Expression::ExpressionConsts& consts)
+{
+	switch (consts) {
+	case Expression::NIL:
+		return "nil";
+	case Expression::FALSE:
+		return "false";
+	case Expression::TRUE:
+		return "true";
+	case Expression::ELLIPSIS:
+		return "...";
+	}
+}
+
 /**
  * Expression and nested types.
  */
@@ -838,12 +867,8 @@ PROTO_TOSTRING(Expression, expr)
 {
 	using ExprType = Expression::ExprOneofCase;
 	switch (expr.expr_oneof_case()) {
-	case ExprType::kNil:
-		return "nil";
-	case ExprType::kFalse:
-		return "false";
-	case ExprType::kTrue:
-		return "true";
+	case ExprType::kConsts:
+		return ExpressionConstsToString(expr.consts());
 	case ExprType::kNumber: {
 		/* Clamp number between given boundaries. */
 		double number = clamp(expr.number(), kMaxNumber, kMinNumber);
@@ -851,8 +876,6 @@ PROTO_TOSTRING(Expression, expr)
 	}
 	case ExprType::kStr:
 		return "'" + ConvertToStringDefault(expr.str()) + "'";
-	case ExprType::kEllipsis:
-		return " ... ";
 	case ExprType::kFunction:
 		return AnonFuncToString(expr.function());
 	case ExprType::kPrefixexp:
@@ -912,11 +935,11 @@ PROTO_TOSTRING(TableConstructor, table)
 
 PROTO_TOSTRING(FieldList, fieldlist)
 {
-	std::string fieldlist_str = FieldToString(fieldlist.firstfield());
+	std::string fieldlist_str = FieldToString(fieldlist.first_field());
 	for (int i = 0; i < fieldlist.fields_size(); ++i)
 		fieldlist_str += FieldWithFieldSepToString(fieldlist.fields(i));
-	if (fieldlist.has_lastsep())
-		fieldlist_str += FieldSepToString(fieldlist.lastsep());
+	if (fieldlist.has_last_sep())
+		fieldlist_str += FieldSepToString(fieldlist.last_sep());
 	return fieldlist_str;
 }
 
@@ -963,14 +986,11 @@ NESTED_PROTO_TOSTRING(NameAssignment, assignment, Field)
 
 PROTO_TOSTRING(FieldSep, sep)
 {
-	using FieldSepType = FieldSep::SepOneofCase;
-	switch (sep.sep_oneof_case()) {
-	case FieldSepType::kComma:
+	switch (sep.sep()) {
+	case FieldSep::COMMA:
 		return ",";
-	case FieldSepType::kSemicolon:
+	case FieldSep::SEMICOLON:
 		return ";";
-	default:
-		return ",";
 	}
 }
 
@@ -979,59 +999,51 @@ PROTO_TOSTRING(FieldSep, sep)
  */
 PROTO_TOSTRING(BinaryOperator, op)
 {
-	using BinopType = BinaryOperator::BinaryOneofCase;
-	switch (op.binary_oneof_case()) {
-	case BinopType::kAdd:
+	switch (op.op()) {
+	case BinaryOperator::ADD:
 		return "+";
-	case BinopType::kSub:
+	case BinaryOperator::SUB:
 		return "-";
-	case BinopType::kMult:
+	case BinaryOperator::MUL:
 		return "*";
-	case BinopType::kDiv:
+	case BinaryOperator::DIV:
 		return "/";
-	case BinopType::kExp:
+	case BinaryOperator::EXP:
 		return "^";
-	case BinopType::kMod:
+	case BinaryOperator::MOD:
 		return "%";
 
-	case BinopType::kConcat:
+	case BinaryOperator::CONCAT:
 		return "..";
 
-	case BinopType::kLess:
+	case BinaryOperator::LESS:
 		return "<";
-	case BinopType::kLessEqual:
+	case BinaryOperator::LESS_EQUAL:
 		return "<=";
-	case BinopType::kGreater:
+	case BinaryOperator::GREATER:
 		return ">";
-	case BinopType::kGreaterEqual:
+	case BinaryOperator::GREATER_EQUAL:
 		return ">=";
-	case BinopType::kEqual:
+	case BinaryOperator::EQUAL:
 		return "==";
-	case BinopType::kNotEqual:
+	case BinaryOperator::NOT_EQUAL:
 		return "~=";
-	case BinopType::kAnd:
+	case BinaryOperator::AND:
 		return "and";
-	case BinopType::kOr:
+	case BinaryOperator::OR:
 		return "or";
-	default:
-		/* Works in most cases. */
-		return "==";
 	}
 }
 
 PROTO_TOSTRING(UnaryOperator, op)
 {
-	using UnaryopType = UnaryOperator::UnaryOneofCase;
-	switch (op.unary_oneof_case()) {
-	case UnaryopType::kNegate:
+	switch (op.op()) {
+	case UnaryOperator::NEGATE:
 		return "-";
-	case UnaryopType::kNot:
+	case UnaryOperator::NOT:
 		return "not ";
-	case UnaryopType::kLength:
+	case UnaryOperator::LENGTH:
 		return "#";
-	default:
-		/* Works in most cases. */
-		return "not ";
 	}
 }
 

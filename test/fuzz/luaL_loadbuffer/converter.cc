@@ -13,6 +13,9 @@
 #define NESTED_PROTO_CONVERT(TYPE, VAR_NAME, PARENT_TYPE) \
 	lua_grammar::PARENT_TYPE::TYPE TYPE##Convert(const lua_grammar_old::PARENT_TYPE::TYPE & VAR_NAME)
 
+#define PROTO_CONVERT_TO(TYPE, VAR_NAME, NEW_TYPE) \
+	lua_grammar::NEW_TYPE TYPE##Convert(const lua_grammar_old::TYPE & VAR_NAME)
+
 namespace {
 
 namespace lg = ::lua_grammar;
@@ -21,7 +24,7 @@ namespace lg_old = ::lua_grammar_old;
 // Order from .proto file, same everywhere
 
 PROTO_CONVERT(Block, block);
-PROTO_CONVERT(Chunk, chunk);
+PROTO_CONVERT_TO(Chunk, chunk, Block);
 PROTO_CONVERT(Statement, stat);
 
 PROTO_CONVERT(AssignmentList, assignmentlist);
@@ -86,17 +89,16 @@ PROTO_CONVERT(Name, to_conv);
 
 PROTO_CONVERT(Block, block)
 {
-	lg::Block converted;
-	*converted.mutable_chunk() = ChunkConvert(block.chunk());
+	lg::Block converted = ChunkConvert(block.chunk());
 	return converted;
 }
 
-PROTO_CONVERT(Chunk, chunk)
+PROTO_CONVERT_TO(Chunk, chunk, Block)
 {
-	lg::Chunk converted;
+	lg::Block converted;
 
 	for (int i = 0; i < chunk.stat_size(); ++i) {
-		converted.mutable_stat()->Add(StatementConvert(chunk.stat(i)));
+		converted.mutable_stats()->Add(StatementConvert(chunk.stat(i)));
 	}
 	if (chunk.has_laststat()) {
 		std::unique_ptr<lg::LastStatement> laststat_ptr(new lg::LastStatement());
@@ -184,7 +186,7 @@ PROTO_CONVERT(Statement, stat)
 	}
 
 	if (stat.has_semicolon()) {
-		converted.set_semicolon(stat.semicolon());
+		converted.set_semicolon(true);
 	}
 
 	return converted;
@@ -221,12 +223,12 @@ PROTO_CONVERT(FunctionCall, call)
 	case lg_old::FunctionCall::CallOneofCase::kPrefArgs:
 		pref_args_ptr.reset(new lg::FunctionCall::PrefixArgs());
 		*pref_args_ptr = PrefixArgsConvert(call.prefargs());
-		converted.set_allocated_prefargs(pref_args_ptr.release());
+		converted.set_allocated_pref_args(pref_args_ptr.release());
 		break;
 	case lg_old::FunctionCall::CallOneofCase::kNamedArgs:
 		named_args_ptr.reset(new lg::FunctionCall::PrefixNamedArgs());
 		*named_args_ptr = PrefixNamedArgsConvert(call.namedargs());
-		converted.set_allocated_namedargs(named_args_ptr.release());
+		converted.set_allocated_named_args(named_args_ptr.release());
 		break;
 	case lg_old::FunctionCall::CallOneofCase::CALL_ONEOF_NOT_SET:
 		break;
@@ -311,14 +313,14 @@ PROTO_CONVERT(IfStatement, statement)
 	lg::IfStatement converted;
 
 	*converted.mutable_condition() = ExpressionConvert(statement.condition());
-	*converted.mutable_first() = BlockConvert(statement.first());
+	*converted.mutable_then_block() = BlockConvert(statement.first());
 	for (int i = 0; i < statement.clauses_size(); ++i) {
 		converted.mutable_clauses()->Add(ElseIfBlockConvert(statement.clauses(i)));
 	}
 	if (statement.has_last()) {
 		std::unique_ptr<lg::Block> last_ptr(new lg::Block());
 		*last_ptr = BlockConvert(statement.last());
-		converted.set_allocated_last(last_ptr.release());
+		converted.set_allocated_else_block(last_ptr.release());
 	}
 
 	return converted;
@@ -373,14 +375,14 @@ NESTED_PROTO_CONVERT(FuncName, funcname, Function)
 {
 	lg::Function::FuncName converted;
 
-	*converted.mutable_firstname() = NameConvert(funcname.firstname());
+	*converted.mutable_first_name() = NameConvert(funcname.firstname());
 	for (int i = 0; i < funcname.names_size(); ++i) {
 		converted.mutable_names()->Add(NameConvert(funcname.names(i)));
 	}
 	if (funcname.has_lastname()) {
 		std::unique_ptr<lg::Name> lastname_ptr(new lg::Name());
 		*lastname_ptr = NameConvert(funcname.lastname());
-		converted.set_allocated_lastname(lastname_ptr.release());
+		converted.set_allocated_last_name(lastname_ptr.release());
 	}
 
 	return converted;
@@ -428,9 +430,7 @@ NESTED_PROTO_CONVERT(ParList, parlist, FuncBody)
 		converted.set_allocated_namelist(namelist_ptr.release());
 		break;
 	case lg_old::FuncBody::ParList::ParlistOneofCase::kEllipsis:
-		ellipsis_ptr.reset(new std::string());
-		*ellipsis_ptr = parlist.ellipsis();
-		converted.set_allocated_ellipsis(ellipsis_ptr.release());
+		converted.set_consts(lg::FuncBody::ParList::ELLIPSIS);
 		break;
 	default:
 		break;
@@ -486,14 +486,14 @@ PROTO_CONVERT(LastStatement, laststat)
 		converted.set_allocated_explist(exptlist_ptr.release());
 		break;
 	case lg_old::LastStatement::LastOneofCase::kBreak:
-		converted.set_break_(laststat.break_());
+		converted.set_consts(lg::LastStatement::BREAK);
 		break;
 	case lg_old::LastStatement::LastOneofCase::LAST_ONEOF_NOT_SET:
 		break;
 	}
 
 	if (laststat.has_semicolon()) {
-		converted.set_semicolon(laststat.semicolon());
+		converted.set_semicolon(true);
 	}
 
 	return converted;
@@ -625,13 +625,13 @@ PROTO_CONVERT(Expression, expr)
 
 	switch (expr.expr_oneof_case()) {
 	case lg_old::Expression::ExprOneofCase::kNil:
-		converted.set_nil(expr.nil());
+		converted.set_consts(lg::Expression::NIL);
 		break;
 	case lg_old::Expression::ExprOneofCase::kFalse:
-		converted.set_false_(expr.false_());
+		converted.set_consts(lg::Expression::FALSE);
 		break;
 	case lg_old::Expression::ExprOneofCase::kTrue:
-		converted.set_true_(expr.true_());
+		converted.set_consts(lg::Expression::TRUE);
 		break;
 	case lg_old::Expression::ExprOneofCase::kNumber:
 		converted.set_number(expr.number());
@@ -642,9 +642,7 @@ PROTO_CONVERT(Expression, expr)
 		converted.set_allocated_str(str_ptr.release());
 		break;
 	case lg_old::Expression::ExprOneofCase::kEllipsis:
-		ellipsis_ptr.reset(new std::string());
-		*ellipsis_ptr = expr.ellipsis();
-		converted.set_allocated_ellipsis(ellipsis_ptr.release());
+		converted.set_consts(lg::Expression::ELLIPSIS);
 		break;
 	case lg_old::Expression::ExprOneofCase::kFunction:
 		function_ptr.reset(new lg::Expression::AnonFunc());
@@ -717,14 +715,14 @@ PROTO_CONVERT(FieldList, fieldlist)
 {
 	lg::FieldList converted;
 
-	*converted.mutable_firstfield() = FieldConvert(fieldlist.firstfield());
+	*converted.mutable_first_field() = FieldConvert(fieldlist.firstfield());
 	for (int i = 0; i < fieldlist.fields_size(); ++i) {
 		converted.mutable_fields()->Add(FieldWithFieldSepConvert(fieldlist.fields(i)));
 	}
 	if (fieldlist.has_lastsep()) {
-		std::unique_ptr<lg::FieldSep> lastsep_ptr(new lg::FieldSep());
-		*lastsep_ptr = FieldSepConvert(fieldlist.lastsep());
-		converted.set_allocated_lastsep(lastsep_ptr.release());
+		std::unique_ptr<lg::FieldSep> last_sep_ptr(new lg::FieldSep());
+		*last_sep_ptr = FieldSepConvert(fieldlist.lastsep());
+		converted.set_allocated_last_sep(last_sep_ptr.release());
 	}
 
 	return converted;
@@ -791,10 +789,10 @@ PROTO_CONVERT(FieldSep, sep)
 
 	switch (sep.sep_oneof_case()) {
 	case lg_old::FieldSep::SepOneofCase::kComma:
-		converted.set_comma(sep.comma());
+		converted.set_sep(lg::FieldSep::COMMA);
 		break;
 	case lg_old::FieldSep::SepOneofCase::kSemicolon:
-		converted.set_semicolon(sep.semicolon());
+		converted.set_sep(lg::FieldSep::SEMICOLON);
 		break;
 	default:
 		break;
@@ -808,49 +806,49 @@ PROTO_CONVERT(BinaryOperator, op)
 	lg::BinaryOperator converted;
 	switch (op.binary_oneof_case()) {
 	case lg_old::BinaryOperator::BinaryOneofCase::kAdd:
-		converted.set_add(op.add());
+		converted.set_op(lg::BinaryOperator::ADD);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kSub:
-		converted.set_sub(op.sub());
+		converted.set_op(lg::BinaryOperator::SUB);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kMult:
-		converted.set_mult(op.mult());
+		converted.set_op(lg::BinaryOperator::MUL);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kDiv:
-		converted.set_div(op.div());
+		converted.set_op(lg::BinaryOperator::DIV);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kExp:
-		converted.set_exp(op.exp());
+		converted.set_op(lg::BinaryOperator::EXP);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kMod:
-		converted.set_mod(op.mod());
+		converted.set_op(lg::BinaryOperator::MOD);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kConcat:
-		converted.set_concat(op.concat());
+		converted.set_op(lg::BinaryOperator::CONCAT);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kLess:
-		converted.set_less(op.less());
+		converted.set_op(lg::BinaryOperator::LESS);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kLessEqual:
-		converted.set_lessequal(op.lessequal());
+		converted.set_op(lg::BinaryOperator::LESS_EQUAL);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kGreater:
-		converted.set_greater(op.greater());
+		converted.set_op(lg::BinaryOperator::GREATER);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kGreaterEqual:
-		converted.set_greaterequal(op.greaterequal());
+		converted.set_op(lg::BinaryOperator::GREATER_EQUAL);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kEqual:
-		converted.set_equal(op.equal());
+		converted.set_op(lg::BinaryOperator::EQUAL);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kNotEqual:
-		converted.set_notequal(op.notequal());
+		converted.set_op(lg::BinaryOperator::NOT_EQUAL);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kAnd:
-		converted.set_and_(op.and_());
+		converted.set_op(lg::BinaryOperator::AND);
 		break;
 	case lg_old::BinaryOperator::BinaryOneofCase::kOr:
-		converted.set_or_(op.or_());
+		converted.set_op(lg::BinaryOperator::OR);
 		break;
 	default:
 		break;
@@ -864,13 +862,13 @@ PROTO_CONVERT(UnaryOperator, op)
 
 	switch (op.unary_oneof_case()) {
 	case lg_old::UnaryOperator::UnaryOneofCase::kNegate:
-		converted.set_negate(op.negate());
+		converted.set_op(lg::UnaryOperator::NEGATE);
 		break;
 	case lg_old::UnaryOperator::UnaryOneofCase::kNot:
-		converted.set_not_(op.not_());
+		converted.set_op(lg::UnaryOperator::NOT);
 		break;
 	case lg_old::UnaryOperator::UnaryOneofCase::kLength:
-		converted.set_length(op.length());
+		converted.set_op(lg::UnaryOperator::LENGTH);
 		break;
 	default:
 		break;

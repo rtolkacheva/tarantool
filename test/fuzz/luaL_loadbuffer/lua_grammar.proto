@@ -12,17 +12,12 @@
 syntax = "proto2";
 package lua_grammar;
 
-/* block ::= chunk */
-message Block {
-    required Chunk chunk = 1;
-}
-
-/*
- * chunk ::= {stat [`;`]} [laststat [`;`]]
+/* 
+ * block ::= {stat [`;`]} [laststat [`;`]]
  * Semicolon encapsulated in Statement and LastStatement.
  */
-message Chunk {
-    repeated Statement stat = 1;
+message Block {
+    repeated Statement stats = 1;
     optional LastStatement laststat = 2;
 }
 
@@ -34,7 +29,7 @@ message Chunk {
  *         repeatcycle |
  *         ifstat |
  *         forcyclename |
- *         forcyclelist |
+ *         forcyclename |
  *         function |
  *         localfunc |
  *         localnames
@@ -53,7 +48,7 @@ message Statement {
         LocalFunc localfunc = 10;
         LocalNames localnames = 11;
     }
-    optional bool semicolon = 12;
+    required bool semicolon = 12;
 }
 
 /* assignmentlist ::= varlist `=` explist */
@@ -92,8 +87,8 @@ message FunctionCall {
     }
 
     oneof call_oneof {
-        PrefixArgs prefArgs = 1;
-        PrefixNamedArgs namedArgs = 2;
+        PrefixArgs pref_args = 1;
+        PrefixNamedArgs named_args = 2;
     }
 }
 
@@ -125,9 +120,9 @@ message IfStatement {
     }
 
     required Expression condition = 1;
-    required Block first = 2;
+    required Block then_block = 2;
     repeated ElseIfBlock clauses = 3;
-    optional Block last = 4;
+    optional Block else_block = 4;
 }
 
 /* forcyclename ::= `for` Name `=` exp `,` exp [`,` exp] doblock */
@@ -150,9 +145,9 @@ message ForCycleList {
 message Function {
     /* funcname ::= Name {`.` Name} [`:` Name] */
     message FuncName {
-        required Name firstname = 1;
+        required Name first_name = 1;
         repeated Name names = 2;
-        optional Name lastname = 3;
+        optional Name last_name = 3;
     }
 
     required FuncName name = 1;
@@ -169,9 +164,12 @@ message FuncBody {
 
     /* parlist ::= namelistwithellipsis | `...` */
     message ParList {
+        enum ParlistConsts {
+            ELLIPSIS = 0;
+        }
         oneof parlist_oneof {
             NameListWithEllipsis namelist = 1;
-            string ellipsis = 2;
+            ParlistConsts consts = 2;
         }
     }
 
@@ -203,11 +201,15 @@ message LastStatement {
         optional ExpressionList explist = 1;
     }
 
+    enum LastStatementConsts {
+        BREAK = 0;
+    }
+
     oneof last_oneof {
         ReturnOptionalExpressionList explist = 1;
-        uint32 break = 2;
+        LastStatementConsts consts = 2;
     }
-    optional bool semicolon = 3;
+    required bool semicolon = 3;
 }
 
 /* explist ::= {exp `,`} exp */
@@ -282,18 +284,22 @@ message Expression {
         required Expression exp = 2;
     }
 
+    enum ExpressionConsts {
+        NIL = 0;
+        FALSE = 1;
+        TRUE = 2;
+        ELLIPSIS = 3;
+    }
+
     oneof expr_oneof {
-        uint32 nil = 1;
-        uint32 false = 2;
-        uint32 true = 3;
-        double number = 4;
-        string str = 5;
-        string ellipsis = 6;
-        AnonFunc function = 7;
-        PrefixExpression prefixexp = 8;
-        TableConstructor tableconstructor = 9;
-        ExpBinaryOpExp binary = 10;
-        UnaryOpExp unary = 11;
+        ExpressionConsts consts = 1;
+        double number = 2;
+        string str = 3;
+        AnonFunc function = 4;
+        PrefixExpression prefixexp = 5;
+        TableConstructor tableconstructor = 6;
+        ExpBinaryOpExp binary = 7;
+        UnaryOpExp unary = 8;
     }
 }
 
@@ -310,9 +316,9 @@ message FieldList {
         required FieldSep sep = 2;
     }
 
-    required Field firstField = 1;
+    required Field first_field = 1;
     repeated FieldWithFieldSep fields = 2;
-    optional FieldSep lastSep = 3;
+    optional FieldSep last_sep = 3;
 }
 
 /* field ::= `[` exp `]` `=` exp | Name `=` exp | exp */
@@ -338,10 +344,11 @@ message Field {
 
 /* fieldsep ::= `,` | `;` */
 message FieldSep {
-    oneof sep_oneof {
-        uint32 comma = 1;
-        uint32 semicolon = 2;
+    enum FieldSepEnum {
+        COMMA = 0;
+        SEMICOLON = 1;
     }
+    required FieldSepEnum sep = 1;
 }
 
 /*
@@ -362,37 +369,38 @@ message FieldSep {
  *          `or`
  */
 message BinaryOperator {
-    oneof binary_oneof {
-        /* Arithmetic operators. */
-        uint32 add = 1;
-        uint32 sub = 2;
-        uint32 mult = 3;
-        uint32 div = 4;
-        uint32 exp = 5;
-        uint32 mod = 6;
+    enum BinaryOperatorEnum {
+        ADD = 0;
+        SUB = 1;
+        MUL = 2;
+        DIV = 3;
+        EXP = 4;
+        MOD = 5;
 
-        /* Concatenation. */
-        uint32 concat = 7;
+        CONCAT = 6;
 
-        /* Logical operators. */
-        uint32 less = 8;
-        uint32 lessEqual = 9;
-        uint32 greater = 10;
-        uint32 greaterEqual = 11;
-        uint32 equal = 12;
-        uint32 notEqual = 13;
-        uint32 and = 14;
-        uint32 or = 15;
+        LESS = 7;
+        LESS_EQUAL = 8;
+        GREATER = 9;
+        GREATER_EQUAL = 10;
+        EQUAL = 11;
+        NOT_EQUAL = 12;
+        AND = 13;
+        OR = 14;
     }
+
+    required BinaryOperatorEnum op = 1;
 }
 
 /* unop ::= `-` | `not` | `#` */
 message UnaryOperator {
-    oneof unary_oneof {
-        uint32 negate = 1;
-        uint32 not = 2;
-        uint32 length = 3;
+    enum UnaryOperatorEnum {
+        NEGATE = 0;
+        NOT = 1;
+        LENGTH = 2;
     }
+
+    required UnaryOperatorEnum op = 1;
 }
 
 /* Name ::= <correct Lua Identifier> */
